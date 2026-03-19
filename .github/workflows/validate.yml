@@ -61,8 +61,8 @@ jobs:
       - name: Check for outdated rate limits
         shell: bash
         run: |
-          if grep -rPl "~10 RPM|~500 RPD(?! )" banana/ README.md 2>/dev/null; then
-            echo "::error::Found outdated rate limits (pre-Dec 2025 values)"
+          if grep -rEl "~10 RPM / ~500 RPD" banana/ README.md 2>/dev/null; then
+            echo "::error::Found outdated rate limits (pre-Dec 2025 cut values)"
             exit 1
           fi
           echo "No outdated rate limits found"

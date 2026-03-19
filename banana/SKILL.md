@@ -302,7 +302,7 @@ Default: `gemini-3.1-flash-image-preview`. Switch with `set_model` when routing 
 |-------|-----------|
 | MCP not configured | Run `/banana setup` |
 | API key invalid | New key at https://aistudio.google.com/apikey |
-| Rate limited (429) | Wait 60s, retry. Free tier: ~10 RPM / ~500 RPD |
+| Rate limited (429) | Wait 60s, retry with exponential backoff. Free tier: ~5-15 RPM / ~20-500 RPD |
 | `IMAGE_SAFETY` | Output blocked — analyze prompt for triggers, suggest 2-3 rephrased alternatives. See `references/prompt-engineering.md` Safety Rephrase section. Do NOT auto-retry without user approval. |
 | `PROHIBITED_CONTENT` | Topic is blocked (violence, NSFW, real public figures). Non-retryable — explain why and suggest alternative concepts. |
 | Safety filter false positive | Filters are overly cautious. Rephrase using abstraction, artistic framing, or metaphor. Common: "dog" blocked → try "a friendly golden retriever in a sunny park". See `references/prompt-engineering.md` Safety Rephrase Strategies. |
