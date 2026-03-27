@@ -59,3 +59,48 @@ ensures the skill works on any system with Python 3.6+.
 - No negative prompt parameter exists. Use semantic reframing in the prompt.
 - `responseModalities` must explicitly include "IMAGE" or the API returns text only.
 - NEVER use banned keywords in prompts: "8K", "masterpiece", "ultra-realistic", "high resolution" -- these degrade output quality. Use prestigious context anchors instead (see prompt-engineering.md).
+
+## Distribution
+
+### Plugin marketplace (primary)
+
+Users install via:
+```shell
+/plugin marketplace add AgriciDaniel/banana-claude
+/plugin install banana-claude@banana-claude-marketplace
+```
+
+### Official Anthropic marketplace
+
+Submission pending via [claude.ai/settings/plugins/submit](https://claude.ai/settings/plugins/submit).
+Once accepted, users install with:
+```shell
+/plugin install banana-claude@claude-plugins-official
+```
+
+### Standalone install (legacy)
+
+Still supported via `install.sh` for users not on the plugin system.
+
+## Versioning
+
+Version must be bumped in ALL 4 files when releasing:
+1. `.claude-plugin/plugin.json` -- `version` field (plugin system reads this)
+2. `skills/banana/SKILL.md` -- `metadata.version` in frontmatter
+3. `README.md` -- version badge
+4. `CITATION.cff` -- `version` and `date-released`
+
+Also add a new section in `CHANGELOG.md`.
+
+Do NOT set version in `marketplace.json` -- it conflicts with `plugin.json` (plugin.json always wins silently per Anthropic docs).
+
+## Plugin development notes
+
+- `.claude-plugin/` contains ONLY `plugin.json` and `marketplace.json`. Never put skills, agents, or commands in this directory.
+- `skills/` and `agents/` must be at plugin root (not inside `.claude-plugin/`).
+- Plugin variable `${CLAUDE_PLUGIN_ROOT}` resolves to the plugin cache directory. Use for hook commands and MCP configs.
+- SKILL.md uses `${CLAUDE_SKILL_DIR}` for script paths -- this is a semantic marker Claude interprets based on context. Works in both plugin and standalone mode.
+- Relative paths in SKILL.md (`references/`, `scripts/`) resolve relative to SKILL.md location. These work in both modes.
+- Test locally with `claude --plugin-dir .` (loads plugin without installing).
+- After changes, run `/reload-plugins` in Claude Code to pick up updates without restarting.
+- Validate with `claude plugin validate .` or `/plugin validate .` before releasing.

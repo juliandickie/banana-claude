@@ -21,8 +21,10 @@ Contributions are welcome! Here's how to help.
 
 - Keep SKILL.md under 500 lines / 5,000 tokens
 - Ensure consistency across all reference files (rate limits, model names, aspect ratios)
-- Test with `./install.sh` before submitting
+- Test as plugin: `claude --plugin-dir .`
+- Validate before submitting: `claude plugin validate .`
 - Follow existing markdown formatting conventions
+- Bump version in all 4 files when releasing (see CLAUDE.md Versioning section)
 
 ## Reporting Issues
 
