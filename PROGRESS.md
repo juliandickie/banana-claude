@@ -81,12 +81,37 @@ Both keys stored in `~/.banana/config.json`. Scripts check: CLI flag → env var
 **Files created:** replicate_generate.py, replicate_edit.py, replicate.md, banana-installer/SKILL.md, 6 screenshot WebPs, PROGRESS.md
 **Files modified:** SKILL.md, prompt-engineering.md, gemini-models.md, presets.md, presets.py, setup_mcp.py, generate.py, edit.py, cost_tracker.py, cost-tracking.md, README.md, CHANGELOG.md, CLAUDE.md
 
-## Potential Next Steps
+### Session 2 (2026-04-07)
+**Scope:** Conversational setup flow, README images, expansion roadmap
 
-- [ ] Test the full setup flow with a fresh user (no existing config)
-- [ ] Create example Brand Style Guide JSON files for common use cases
-- [ ] Add more Presentation mode prompt templates (quote slides, section dividers, image feature slides)
-- [ ] Explore using the Avant Garde brand brief as a preset template
-- [ ] Consider adding a `/banana slides` command for batch slide generation
-- [ ] Monitor upstream for new features to integrate
-- [ ] Test Replicate backend end-to-end with actual API calls
+1. Fixed API key access — unified storage in `~/.banana/config.json`, all scripts now check there
+2. Created installer/updater skill (`/banana-install`)
+3. Generated 6 custom README images using the skill itself (cover, pipeline, formula, domain modes, presentation, creative brief)
+4. Rewrote `/banana setup` as conversational flow (no `input()` prompts)
+5. Updated README with beginner-friendly install guide and step-by-step credential setup
+6. Created PROGRESS.md for cross-session continuity
+7. Designed expansion roadmap (see ROADMAP.md)
+
+## Expansion Roadmap
+
+See `ROADMAP.md` for the full prioritized feature roadmap.
+
+**Architecture direction:** Split into three interlinked skills:
+1. **Brand Learning** (`/banana brand`) — Brand guide creation, asset registry, presets
+2. **Image Generation** (`/banana`, `/banana slides`, `/banana social`) — Current core, images only
+3. **Video Generation** (`/banana video`) — VEO 3.1, separate skill, shared brand/asset system
+
+**Priority summary:**
+
+| # | Feature | Status |
+|---|---------|--------|
+| 1 | `/banana slides` — batch slide deck pipeline (plan → prompts → generate) | Planned |
+| 2 | `/banana brand` — conversational brand guide builder (learn from website/docs → refine → preview) | Planned |
+| 3 | Pre-built brand guide library (example JSON templates) | Planned |
+| 4 | `/banana social` — platform-native generation with text option | Planned |
+| 5 | Asset registry (characters + products + objects) | Planned |
+| 6 | `/banana video` with VEO 3.1 (separate skill) | Planned |
+| 7 | Image-to-prompt reverse engineering | Planned |
+| 8 | Deck builder (.pptx output) | Future |
+| 9 | Visual brand book generator | Future |
+| 10 | Analytics dashboard | Future |
