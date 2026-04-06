@@ -35,6 +35,8 @@ Before constructing ANY prompt or calling ANY tool, read:
 | `/banana batch <idea> [N]` | Generate N variations (default: 3) |
 | `/banana setup` | Guided Google AI API key setup |
 | `/banana setup replicate` | Guided Replicate token setup (optional fallback) |
+| `/banana status` | Check version, installation, and API key status |
+| `/banana update` | Pull latest version from GitHub |
 | `/banana preset [list\|create\|show\|delete]` | Manage brand/style presets |
 | `/banana cost [summary\|today\|estimate]` | View cost tracking and estimates |
 
@@ -165,6 +167,6 @@ Load on-demand -- do NOT load all at startup:
 - `references/presets.md` -- Brand Style Guide schema (17 fields)
 - `references/setup.md` -- Guided API key configuration flow
 
-## Setup
+## Setup, Status & Update
 
-See `references/setup.md` for the guided setup flow. When user runs `/banana setup`, load that reference and guide them conversationally.
+See `references/setup.md` for guided flows. When user runs `/banana setup`, `/banana status`, or `/banana update`, load that reference and follow its instructions.

@@ -46,6 +46,8 @@ This repo follows the official Claude Code plugin layout:
 | `skills/banana/references/mcp-tools.md` | MCP tool parameter reference. Update when Google changes the API. |
 | `skills/banana/references/replicate.md` | Replicate backend API reference (`google/nano-banana-2`). |
 | `skills/banana/references/presets.md` | Brand Style Guide schema (17 fields, 8 optional for brand guides). |
+| `skills/banana/references/setup.md` | Setup, install, update, status, sharing guide. Loaded on demand by `/banana setup/status/update`. |
+| `skills/banana/scripts/slides.py` | Slide deck batch generation (generate, estimate, template subcommands). |
 | `skills/banana/scripts/generate.py` | Direct Gemini API fallback for generation. Uses urllib.request (stdlib). |
 | `skills/banana/scripts/edit.py` | Direct Gemini API fallback for editing. Uses urllib.request (stdlib). |
 | `skills/banana/scripts/replicate_generate.py` | Replicate API fallback for generation. Uses urllib.request (stdlib). |

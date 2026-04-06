@@ -1,8 +1,10 @@
-# Setup Reference -- API Key Configuration
+# Setup, Install & Update Reference
 
-> Load this when the user runs `/banana setup` or `/banana setup replicate`.
-> Guide them conversationally. Do NOT run `setup_mcp.py` without arguments
-> (the interactive `input()` prompt does not work in Claude Code's shell).
+> Load this when the user runs `/banana setup`, `/banana status`, `/banana update`,
+> or asks how to install/share banana-claude.
+>
+> Guide conversationally. Do NOT run `setup_mcp.py` without arguments (the
+> interactive `input()` prompt does not work in Claude Code's shell).
 
 ## `/banana setup` -- Google AI API Key (Primary)
 
@@ -48,15 +50,64 @@ Walk the user through this:
    python3 ${CLAUDE_SKILL_DIR}/scripts/setup_mcp.py --replicate-key THE_TOKEN
    ```
 
-## Checking Setup Status
+## `/banana status` -- Check Installation & Keys
 
 ```bash
+# Show version
+grep 'version:' ${CLAUDE_SKILL_DIR}/SKILL.md | head -1
+
+# Show git status (if in a git repo)
+cd ${CLAUDE_SKILL_DIR}/../.. && git log --oneline -3 2>/dev/null
+
+# Check API keys
 python3 ${CLAUDE_SKILL_DIR}/scripts/setup_mcp.py --check
 python3 ${CLAUDE_SKILL_DIR}/scripts/setup_mcp.py --check-replicate
 ```
+
+## `/banana update` -- Pull Latest Version
+
+```bash
+cd ${CLAUDE_SKILL_DIR}/../.. && git pull origin main
+```
+Then tell the user to run `/reload-plugins` in Claude Code.
 
 ## Where Keys Are Stored
 
 Both keys are saved to `~/.banana/config.json` (for fallback scripts) and the
 Google key is also saved to `~/.claude/settings.json` (for the MCP server).
 Keys never leave the user's machine.
+
+## New User Guide
+
+For first-time users, provide this quick start:
+
+> **What is Banana Claude?**
+> An AI image generation skill for Claude Code. You describe what you want,
+> and Claude acts as Creative Director -- interpreting intent, selecting style,
+> and generating images using Google's Gemini models.
+>
+> **Install in 3 steps:**
+> ```bash
+> git clone https://github.com/juliandickie/banana-claude.git ~/banana-claude
+> claude --plugin-dir ~/banana-claude
+> # Then in Claude Code: /banana setup
+> ```
+>
+> **First image:** `/banana generate "a cozy coffee shop at golden hour"`
+
+## Sharing with Friends
+
+Copy-paste this message:
+
+> **Want AI image generation in Claude Code?**
+>
+> 1. Get a free API key: https://aistudio.google.com/apikey
+> 2. Run:
+> ```bash
+> git clone https://github.com/juliandickie/banana-claude.git ~/banana-claude
+> claude --plugin-dir ~/banana-claude
+> ```
+> 3. In Claude Code: `/banana setup` (paste your API key)
+> 4. Try it: `/banana generate "a sunset over mountains"`
+>
+> To update: `cd ~/banana-claude && git pull` then `/reload-plugins`

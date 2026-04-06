@@ -220,6 +220,8 @@ Claude will ask about your brand, select the right domain mode (Cinema, Product,
 | `/banana batch <idea> [N]` | Generate N variations (default: 3) |
 | `/banana setup` | Guided API key setup (Claude walks you through it) |
 | `/banana setup replicate` | Guided Replicate token setup (optional fallback) |
+| `/banana status` | Check version, installation, and API key status |
+| `/banana update` | Pull latest version from GitHub |
 | `/banana preset [list\|create\|show\|delete]` | Manage brand/style presets |
 | `/banana cost [summary\|today\|estimate]` | View cost tracking and estimates |
 
