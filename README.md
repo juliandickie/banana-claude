@@ -138,17 +138,25 @@ Then in Claude Code, type `/reload-plugins` to pick up changes.
 <details>
 <summary>Optional: Replicate as Fallback Backend</summary>
 
-Replicate provides a simpler alternative when the MCP server isn't available.
+Replicate provides an alternative API backend using `google/nano-banana-2`. It's useful when the MCP server isn't available, or if you prefer simpler auth. It costs ~$0.05/image (no free tier).
+
+**Getting your Replicate API token:**
 
 1. Go to [replicate.com/account/api-tokens](https://replicate.com/account/api-tokens)
-2. Sign in and create a token
-3. In Claude Code, run:
+2. Sign in with GitHub, Google, or email
+3. Click **"Create token"**
+4. Give it a name (e.g., "banana-claude")
+5. Copy the token (starts with `r8_...`)
+
+**Configure it in Claude Code:**
 
 ```
 /banana setup replicate
 ```
 
-Paste your token when prompted. The fallback chain is: MCP → Direct Gemini API → Replicate.
+Claude will walk you through the process and ask you to paste the token. Your token is saved to `~/.banana/config.json` and never leaves your machine.
+
+The fallback chain is automatic: MCP → Direct Gemini API → Replicate.
 
 </details>
 
