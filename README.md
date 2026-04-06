@@ -14,6 +14,8 @@ Unlike simple API wrappers, Claude interprets your intent, selects domain expert
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Upstream](https://img.shields.io/badge/upstream-AgriciDaniel%2Fbanana--claude-gray)](https://github.com/AgriciDaniel/banana-claude)
 
+> **Blog:** [See banana-claude in action](https://agricidaniel.com/blog/banana-claude-ai-image-generation)
+
 <details>
 <summary>Table of Contents</summary>
 
