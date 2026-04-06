@@ -34,8 +34,8 @@ construct an optimized prompt using the 5-Component Formula from `references/pro
 | `/banana chat` | Multi-turn visual session (character/style consistent) |
 | `/banana inspire [category]` | Browse prompt database for ideas |
 | `/banana batch <idea> [N]` | Generate N variations (default: 3) |
-| `/banana setup` | Install MCP server and configure Google AI API key |
-| `/banana setup replicate` | Configure Replicate API token (alternative backend) |
+| `/banana setup` | Walk through Google AI API key setup (free, step-by-step) |
+| `/banana setup replicate` | Walk through Replicate token setup (optional fallback) |
 | `/banana preset [list\|create\|show\|delete]` | Manage brand/style presets |
 | `/banana cost [summary\|today\|estimate]` | View cost tracking and estimates |
 
@@ -416,15 +416,63 @@ Load on-demand -- do NOT load all at startup:
 
 ## Setup
 
-**MCP Server (primary):**
-Run `python3 scripts/setup_mcp.py` to configure the MCP server. Requires:
-- Node.js 18+ (npx)
-- Google AI API key (free at https://aistudio.google.com/apikey)
+When the user runs `/banana setup` or `/banana setup replicate`, guide them
+conversationally. Do NOT run `setup_mcp.py` without arguments (the interactive
+`input()` prompt does not work in Claude Code's shell).
 
-**Replicate Backend (alternative):**
-Run `python3 scripts/setup_mcp.py --replicate-key YOUR_TOKEN` to configure Replicate.
-- Get a token at https://replicate.com/account/api-tokens
-- No Google Cloud setup needed -- simpler auth
-- Verify: `python3 scripts/setup_mcp.py --check-replicate`
+### `/banana setup` -- Google AI API Key (Primary)
 
-Verify: `python3 scripts/validate_setup.py`
+Walk the user through this:
+
+1. **Explain what they need:**
+   "To generate images, you need a free Google AI API key. This lets Claude
+   call Google's Gemini image generation models. No credit card required."
+
+2. **Direct them to get the key:**
+   "Go to https://aistudio.google.com/apikey and:
+   - Sign in with your Google account
+   - Click 'Create API Key'
+   - Select any Google Cloud project (or create one -- it's free)
+   - Copy the key (starts with `AIza...`)"
+
+3. **Ask them to paste it:**
+   "Paste your API key here and I'll configure everything."
+
+4. **When they provide the key, run:**
+   ```bash
+   python3 ${CLAUDE_SKILL_DIR}/scripts/setup_mcp.py --key THE_KEY_THEY_GAVE
+   ```
+
+5. **Tell them to restart Claude Code** for the MCP server to load.
+
+6. **Free tier info:** ~5-15 images/minute, ~20-500/day. Resets midnight Pacific.
+
+### `/banana setup replicate` -- Replicate API (Optional Fallback)
+
+1. **Explain the option:**
+   "Replicate is an optional backup. If the primary Google API is unavailable,
+   Banana Claude will automatically fall back to Replicate. It costs ~$0.05/image."
+
+2. **Direct them to get the token:**
+   "Go to https://replicate.com/account/api-tokens and:
+   - Sign in (GitHub login works)
+   - Click 'Create token'
+   - Copy the token (starts with `r8_...`)"
+
+3. **When they provide the token, run:**
+   ```bash
+   python3 ${CLAUDE_SKILL_DIR}/scripts/setup_mcp.py --replicate-key THE_TOKEN
+   ```
+
+### Checking Setup Status
+
+```bash
+python3 ${CLAUDE_SKILL_DIR}/scripts/setup_mcp.py --check
+python3 ${CLAUDE_SKILL_DIR}/scripts/setup_mcp.py --check-replicate
+```
+
+### Where Keys Are Stored
+
+Both keys are saved to `~/.banana/config.json` (for fallback scripts) and the
+Google key is also saved to `~/.claude/settings.json` (for the MCP server).
+Keys never leave the user's machine.
