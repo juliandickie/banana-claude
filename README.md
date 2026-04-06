@@ -113,9 +113,11 @@ In Claude Code, run:
 /banana setup
 ```
 
-Paste your API key when prompted. This saves it to both:
+Claude will walk you through the process conversationally — explaining what the key is, where to get it, and asking you to paste it in the chat. Your key is saved to:
 - `~/.claude/settings.json` (for the MCP server)
 - `~/.banana/config.json` (for fallback scripts)
+
+Keys never leave your machine and are not sent to GitHub.
 
 ### Step 5: Test It
 
@@ -197,8 +199,8 @@ Claude will ask about your brand, select the right domain mode (Cinema, Product,
 | `/banana chat` | Multi-turn visual session (maintains consistency) |
 | `/banana inspire [category]` | Browse 2,500+ prompt database |
 | `/banana batch <idea> [N]` | Generate N variations (default: 3) |
-| `/banana setup` | Configure MCP and API key |
-| `/banana setup replicate` | Configure Replicate API token (alternative backend) |
+| `/banana setup` | Guided API key setup (Claude walks you through it) |
+| `/banana setup replicate` | Guided Replicate token setup (optional fallback) |
 | `/banana preset [list\|create\|show\|delete]` | Manage brand/style presets |
 | `/banana cost [summary\|today\|estimate]` | View cost tracking and estimates |
 
