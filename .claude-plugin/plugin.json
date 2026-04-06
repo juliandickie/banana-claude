@@ -3,11 +3,11 @@
   "version": "1.6.0",
   "description": "AI image generation Creative Director powered by Google Gemini Nano Banana models. Claude interprets intent, selects domain expertise, constructs optimized prompts, and orchestrates Gemini for best results.",
   "author": {
-    "name": "AgriciDaniel",
-    "url": "https://github.com/AgriciDaniel"
+    "name": "juliandickie",
+    "url": "https://github.com/juliandickie"
   },
-  "homepage": "https://github.com/AgriciDaniel/banana-claude",
-  "repository": "https://github.com/AgriciDaniel/banana-claude",
+  "homepage": "https://github.com/juliandickie/banana-claude",
+  "repository": "https://github.com/juliandickie/banana-claude",
   "license": "MIT",
   "keywords": [
     "image-generation",

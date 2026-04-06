@@ -5,12 +5,12 @@ description: >
   a user's image request and selected domain mode, applies Google's official
   5-component formula, and returns a production-ready prompt string. Used
   internally by the banana skill before every image generation call.
-tools: Read, Grep
+tools:
+  - Read
+  - Grep
 model: sonnet
+color: green
 maxTurns: 5
-skills:
-  - skills/banana/references/prompt-engineering
-  - skills/banana/references/gemini-models
 ---
 
 ## Your role
@@ -21,6 +21,10 @@ Your only output is a single, optimized prompt string ready to be passed
 directly to the Gemini API. Do not generate images yourself.
 
 ## Instructions
+
+0. First, read these reference files for the latest rules and vocabulary:
+   - `skills/banana/references/prompt-engineering.md` -- prompt formula, domain modes, templates
+   - `skills/banana/references/gemini-models.md` -- model specs, resolution tiers
 
 1. Read the user's request carefully. Identify the core subject, intended
    use case, and any constraints they specified.
