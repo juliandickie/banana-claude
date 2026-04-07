@@ -1,0 +1,26 @@
+{
+  "name": "organic-natural",
+  "description": "Eco-conscious natural brand — earthy tones, organic textures, sustainable living",
+  "colors": ["#5C4033", "#8B7355", "#F5F0E8", "#6B8E23", "#D4A574"],
+  "style": "warm natural photography, organic textures, handcrafted feel, matte finishes",
+  "typography": "rounded sans-serif headlines, serif body text with natural character",
+  "lighting": "warm natural sunlight, golden hour, soft diffused shadows",
+  "mood": "warm, authentic, sustainable, nurturing",
+  "default_ratio": "4:3",
+  "default_resolution": "2K",
+  "background_styles": {
+    "warm-earth": {"bg": "#F5F0E8", "text": "#5C4033", "accent": "#6B8E23"},
+    "forest-dark": {"bg": "#2D3B2D", "text": "#F5F0E8", "accent": "#D4A574"}
+  },
+  "visual_motifs": "subtle linen or paper texture at 10% opacity, organic leaf patterns",
+  "logo_placement": "center-bottom, 12% of width",
+  "do_list": ["Use natural materials in compositions (wood, stone, linen, clay)", "Emphasize texture and tactile quality", "Keep colors warm and muted", "Show real imperfections (grain, patina, natural wear)"],
+  "dont_list": ["No neon or artificial colors", "No glossy or plastic surfaces", "No sterile white backgrounds", "No heavy digital effects"],
+  "prompt_keywords": {
+    "aesthetic": ["organic", "natural", "handcrafted", "artisanal", "sustainable"],
+    "mood": ["warm", "authentic", "nurturing", "grounded", "peaceful"],
+    "photography": ["natural sunlight", "golden hour", "shallow depth of field", "texture close-ups"]
+  },
+  "prompt_suffix": "Warm natural aesthetic with organic textures, golden hour lighting, authentic and sustainable mood.",
+  "technical_specs": {"color_space": "sRGB", "min_dpi": 150}
+}

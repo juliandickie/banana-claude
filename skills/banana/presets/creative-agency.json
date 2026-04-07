@@ -1,0 +1,26 @@
+{
+  "name": "creative-agency",
+  "description": "Bold creative agency — experimental, artistic, avant-garde, convention-breaking",
+  "colors": ["#FF6B35", "#004E89", "#1A1A2E", "#FCEDDA", "#F7C948"],
+  "style": "bold experimental compositions, mixed media, collage elements, artistic expression",
+  "typography": "oversized display fonts, mixed weights and styles, expressive type as visual element",
+  "lighting": "dramatic and varied, studio with colored gels, natural with hard shadows",
+  "mood": "creative, bold, experimental, inspiring, unconventional",
+  "default_ratio": "1:1",
+  "default_resolution": "2K",
+  "background_styles": {
+    "deep-canvas": {"bg": "#1A1A2E", "text": "#FCEDDA", "accent": "#FF6B35"},
+    "warm-paper": {"bg": "#FCEDDA", "text": "#1A1A2E", "accent": "#004E89"}
+  },
+  "visual_motifs": "abstract brush strokes or paint splatter textures at 20% opacity",
+  "logo_placement": "bottom-right, 10% of width",
+  "do_list": ["Break conventional layouts", "Use bold color combinations", "Embrace visual tension and contrast", "Let typography be expressive"],
+  "dont_list": ["No cookie-cutter stock photography", "No safe or predictable compositions", "No generic corporate feel", "No centered-and-symmetrical default layouts"],
+  "prompt_keywords": {
+    "aesthetic": ["bold", "experimental", "artistic", "avant-garde", "unconventional"],
+    "mood": ["creative", "inspiring", "dynamic", "provocative", "expressive"],
+    "photography": ["dramatic angles", "colored lighting gels", "mixed media", "editorial"]
+  },
+  "prompt_suffix": "Bold experimental aesthetic with dramatic compositions, mixed media elements, creative and inspiring mood.",
+  "technical_specs": {"color_space": "sRGB", "min_dpi": 150}
+}

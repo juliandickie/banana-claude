@@ -1,0 +1,26 @@
+{
+  "name": "luxury-dark",
+  "description": "Premium dark luxury brand — black and gold, dramatic, editorial quality",
+  "colors": ["#000000", "#FFC000", "#FFFFFF", "#C0C0C0", "#1A1A1A"],
+  "style": "premium dark photography, dramatic lighting, gold accents, editorial quality",
+  "typography": "bold condensed sans-serif headlines in white, thin elegant body text",
+  "lighting": "dramatic side lighting with deep shadows, warm golden rim light, low-key",
+  "mood": "confident, innovative, premium, forward-thinking",
+  "default_ratio": "16:9",
+  "default_resolution": "4K",
+  "background_styles": {
+    "dark-premium": {"bg": "#000000", "text": "#FFFFFF", "accent": "#FFC000"},
+    "gold-gradient": {"bg": "gradient from #FFC000 to #8B6914 to #1A1A1A", "text": "#000000", "accent": "#FFFFFF"}
+  },
+  "visual_motifs": "geometric network pattern of connected nodes and thin lines in silver at 25% opacity",
+  "logo_placement": "bottom-left, 15% of width",
+  "do_list": ["Use generous negative space", "Maintain high contrast", "Keep patterns subtle at 20-30% opacity", "Use gold as accent only, never dominant"],
+  "dont_list": ["No busy backgrounds behind text areas", "No more than 2 accent colors", "No white backgrounds", "No casual or playful imagery"],
+  "prompt_keywords": {
+    "aesthetic": ["premium", "luxurious", "editorial", "sophisticated", "dark"],
+    "mood": ["confident", "innovative", "exclusive", "powerful"],
+    "photography": ["dramatic lighting", "deep shadows", "golden rim light", "low-key"]
+  },
+  "prompt_suffix": "Premium dark aesthetic with gold accents, dramatic side lighting with deep shadows, confident and innovative mood.",
+  "technical_specs": {"color_space": "sRGB", "min_dpi": 300}
+}

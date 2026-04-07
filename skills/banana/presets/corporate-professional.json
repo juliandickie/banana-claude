@@ -1,0 +1,26 @@
+{
+  "name": "corporate-professional",
+  "description": "Enterprise corporate brand — navy and white, clean, trustworthy, institutional",
+  "colors": ["#1B365D", "#2C5282", "#FFFFFF", "#F7FAFC", "#718096"],
+  "style": "clean corporate photography, structured layouts, professional polish, matte finishes",
+  "typography": "medium weight sans-serif headlines, regular weight body text, clear hierarchy",
+  "lighting": "even professional studio lighting, balanced exposure, no harsh shadows",
+  "mood": "trustworthy, stable, professional, reliable, authoritative",
+  "default_ratio": "16:9",
+  "default_resolution": "2K",
+  "background_styles": {
+    "corporate-blue": {"bg": "#1B365D", "text": "#FFFFFF", "accent": "#2C5282"},
+    "clean-white": {"bg": "#F7FAFC", "text": "#1B365D", "accent": "#2C5282"}
+  },
+  "visual_motifs": "subtle diagonal line pattern in light gray at 8% opacity",
+  "logo_placement": "top-left, 10% of width",
+  "do_list": ["Maintain strict visual hierarchy", "Use structured grid layouts", "Keep tone professional and measured", "Ensure accessibility contrast ratios"],
+  "dont_list": ["No playful or casual imagery", "No bright neon colors", "No handwritten or decorative fonts", "No asymmetric or experimental layouts"],
+  "prompt_keywords": {
+    "aesthetic": ["professional", "corporate", "structured", "clean", "polished"],
+    "mood": ["trustworthy", "reliable", "authoritative", "stable", "confident"],
+    "photography": ["studio lighting", "balanced exposure", "sharp focus", "neutral tones"]
+  },
+  "prompt_suffix": "Clean professional corporate aesthetic with balanced studio lighting, structured composition, trustworthy and authoritative mood.",
+  "technical_specs": {"color_space": "sRGB", "min_dpi": 300}
+}

@@ -1,0 +1,26 @@
+{
+  "name": "fashion-editorial",
+  "description": "High fashion editorial — dramatic, couture, Vogue-style, artistic sophistication",
+  "colors": ["#000000", "#FFFFFF", "#C9A96E", "#8B0000", "#F5F5F0"],
+  "style": "high fashion editorial photography, dramatic compositions, couture aesthetic, Vogue quality",
+  "typography": "thin elegant serif headlines with generous letter-spacing, condensed sans-serif captions",
+  "lighting": "dramatic directional lighting, strong shadows, fashion studio or natural editorial light",
+  "mood": "sophisticated, dramatic, aspirational, artistic, luxurious",
+  "default_ratio": "3:4",
+  "default_resolution": "4K",
+  "background_styles": {
+    "editorial-dark": {"bg": "#000000", "text": "#FFFFFF", "accent": "#C9A96E"},
+    "gallery-white": {"bg": "#F5F5F0", "text": "#000000", "accent": "#8B0000"}
+  },
+  "visual_motifs": "clean negative space, fashion editorial framing with asymmetric crops",
+  "logo_placement": "bottom-center, 8% of width",
+  "do_list": ["Use dramatic lighting always", "Embrace negative space", "Focus on texture and material detail", "Reference real fashion publications"],
+  "dont_list": ["No flat or even lighting", "No centered compositions unless intentional", "No casual or everyday settings", "No overly saturated colors"],
+  "prompt_keywords": {
+    "aesthetic": ["editorial", "couture", "high-fashion", "dramatic", "sophisticated"],
+    "mood": ["aspirational", "artistic", "luxurious", "confident", "powerful"],
+    "photography": ["dramatic directional lighting", "fashion studio", "editorial framing", "Vogue quality"]
+  },
+  "prompt_suffix": "High fashion editorial aesthetic with dramatic directional lighting, couture styling, sophisticated and aspirational mood. Vogue Italia quality.",
+  "technical_specs": {"color_space": "sRGB", "min_dpi": 300}
+}

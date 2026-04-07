@@ -1,0 +1,26 @@
+{
+  "name": "fitness-energy",
+  "description": "Fitness and sports brand — intense, dynamic, high-energy, motivational",
+  "colors": ["#1A1A1A", "#FF4500", "#FFFFFF", "#FFD700", "#333333"],
+  "style": "high-energy sports photography, dynamic action shots, intense contrast, motivational",
+  "typography": "extra-bold condensed all-caps headlines, impact-style for emphasis",
+  "lighting": "dramatic side lighting, hard shadows, sweat-glistening highlights, gym LED ambiance",
+  "mood": "intense, motivational, powerful, determined, energetic",
+  "default_ratio": "16:9",
+  "default_resolution": "2K",
+  "background_styles": {
+    "gym-dark": {"bg": "#1A1A1A", "text": "#FFFFFF", "accent": "#FF4500"},
+    "energy-gradient": {"bg": "gradient from #FF4500 to #1A1A1A", "text": "#FFFFFF", "accent": "#FFD700"}
+  },
+  "visual_motifs": "dynamic motion blur trails, particle effects at 20% opacity",
+  "logo_placement": "top-right, 10% of width",
+  "do_list": ["Show real effort and intensity", "Capture mid-action movement", "Use dramatic contrast", "Include texture details (sweat, grip, muscle definition)"],
+  "dont_list": ["No static posed shots", "No soft or gentle lighting", "No pastel colors", "No relaxed or calm imagery"],
+  "prompt_keywords": {
+    "aesthetic": ["dynamic", "intense", "powerful", "athletic", "raw"],
+    "mood": ["motivational", "determined", "energetic", "fierce", "unstoppable"],
+    "photography": ["dramatic side lighting", "fast shutter speed", "action freeze", "high contrast"]
+  },
+  "prompt_suffix": "High-energy fitness aesthetic with dramatic side lighting, dynamic action, intense and motivational mood. Nike campaign quality.",
+  "technical_specs": {"color_space": "sRGB", "min_dpi": 150}
+}

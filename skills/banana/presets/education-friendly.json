@@ -1,0 +1,26 @@
+{
+  "name": "education-friendly",
+  "description": "Education and learning brand — approachable, colorful, warm, inclusive, engaging",
+  "colors": ["#4A90D9", "#FF9F43", "#2ECC71", "#FFFFFF", "#2D3436"],
+  "style": "friendly illustrated style, warm photography, inclusive imagery, clear visual hierarchy",
+  "typography": "rounded friendly sans-serif headlines, clean readable body text",
+  "lighting": "bright warm daylight, cheerful and inviting, no harsh shadows",
+  "mood": "approachable, encouraging, inclusive, curious, engaging",
+  "default_ratio": "16:9",
+  "default_resolution": "2K",
+  "background_styles": {
+    "classroom-light": {"bg": "#FFFFFF", "text": "#2D3436", "accent": "#4A90D9"},
+    "warm-welcome": {"bg": "#FFF8F0", "text": "#2D3436", "accent": "#FF9F43"}
+  },
+  "visual_motifs": "subtle pencil sketch texture or notebook paper pattern at 8% opacity",
+  "logo_placement": "top-left, 10% of width",
+  "do_list": ["Use diverse and inclusive imagery", "Keep visuals bright and cheerful", "Make text highly readable", "Include visual learning aids (icons, diagrams)"],
+  "dont_list": ["No dark or moody aesthetics", "No complex or intimidating imagery", "No small or hard-to-read text", "No exclusionary or homogeneous representation"],
+  "prompt_keywords": {
+    "aesthetic": ["friendly", "colorful", "warm", "clear", "approachable"],
+    "mood": ["encouraging", "inclusive", "curious", "engaging", "supportive"],
+    "photography": ["bright daylight", "warm tones", "natural smiles", "diverse representation"]
+  },
+  "prompt_suffix": "Friendly educational aesthetic with bright warm lighting, colorful accents, approachable and inclusive mood.",
+  "technical_specs": {"color_space": "sRGB", "min_dpi": 150}
+}

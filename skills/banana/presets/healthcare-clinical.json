@@ -1,0 +1,26 @@
+{
+  "name": "healthcare-clinical",
+  "description": "Healthcare and medical brand — clinical blues, calming, professional, caring",
+  "colors": ["#0077B6", "#00B4D8", "#FFFFFF", "#F0F9FF", "#023E8A"],
+  "style": "clean clinical photography, calming color palette, professional medical aesthetic",
+  "typography": "medium sans-serif headlines for clarity, regular weight body for readability",
+  "lighting": "bright even lighting, clean and hygienic feel, soft clinical white",
+  "mood": "calming, professional, caring, trustworthy, competent",
+  "default_ratio": "16:9",
+  "default_resolution": "2K",
+  "background_styles": {
+    "clinical-white": {"bg": "#F0F9FF", "text": "#023E8A", "accent": "#0077B6"},
+    "trust-blue": {"bg": "#023E8A", "text": "#FFFFFF", "accent": "#00B4D8"}
+  },
+  "visual_motifs": "subtle circular/molecular pattern in light blue at 10% opacity",
+  "logo_placement": "top-left, 12% of width",
+  "do_list": ["Keep everything clean and uncluttered", "Use calming blue tones", "Show competence through precision", "Ensure imagery feels welcoming not intimidating"],
+  "dont_list": ["No graphic medical imagery", "No dark or moody lighting", "No red as primary color", "No cluttered busy compositions"],
+  "prompt_keywords": {
+    "aesthetic": ["clinical", "clean", "medical", "precise", "hygienic"],
+    "mood": ["calming", "caring", "trustworthy", "competent", "reassuring"],
+    "photography": ["bright even lighting", "clean backgrounds", "soft shadows", "welcoming"]
+  },
+  "prompt_suffix": "Clean clinical aesthetic with calming blue tones, bright even lighting, professional and caring mood.",
+  "technical_specs": {"color_space": "sRGB", "min_dpi": 150}
+}

@@ -1,0 +1,26 @@
+{
+  "name": "startup-bold",
+  "description": "Disruptive tech startup — high contrast, neon accents, energetic, breaking conventions",
+  "colors": ["#0D0D0D", "#00FF88", "#FF3366", "#FFFFFF", "#6C63FF"],
+  "style": "high-contrast dark design, neon accents, bold geometric shapes, futuristic",
+  "typography": "extra-bold condensed all-caps headlines, mono or geometric sans-serif body",
+  "lighting": "dramatic neon glow, colored rim lights, dark environments with selective illumination",
+  "mood": "bold, disruptive, energetic, rebellious, innovative",
+  "default_ratio": "16:9",
+  "default_resolution": "2K",
+  "background_styles": {
+    "neon-dark": {"bg": "#0D0D0D", "text": "#FFFFFF", "accent": "#00FF88"},
+    "gradient-energy": {"bg": "gradient from #6C63FF to #FF3366", "text": "#FFFFFF", "accent": "#00FF88"}
+  },
+  "visual_motifs": "glitch effects, pixel noise at 15% opacity, geometric fragmentation",
+  "logo_placement": "top-right, 8% of width",
+  "do_list": ["Use high contrast always", "Keep backgrounds dark", "Use neon accents sparingly for impact", "Embrace asymmetric layouts"],
+  "dont_list": ["No pastels or muted tones", "No traditional corporate aesthetics", "No centered symmetric layouts", "No stock photo look"],
+  "prompt_keywords": {
+    "aesthetic": ["bold", "futuristic", "neon", "high-contrast", "edgy"],
+    "mood": ["disruptive", "energetic", "rebellious", "innovative", "intense"],
+    "photography": ["neon glow", "dark environments", "colored rim lights", "dramatic contrast"]
+  },
+  "prompt_suffix": "Bold futuristic aesthetic with neon accents on dark backgrounds, dramatic colored lighting, disruptive and energetic mood.",
+  "technical_specs": {"color_space": "sRGB", "min_dpi": 150}
+}

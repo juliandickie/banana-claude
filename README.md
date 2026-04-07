@@ -200,6 +200,9 @@ claude
 # Multi-turn creative session
 /banana chat
 
+# Build a brand guide from your website
+/banana brand
+
 # Generate a slide deck from content
 /banana slides plan --content ~/transcripts/ --preset my-brand
 
@@ -222,6 +225,7 @@ Claude will ask about your brand, select the right domain mode (Cinema, Product,
 | `/banana slides [plan\|prompts\|generate]` | Slide deck pipeline: content → design brief → prompts → batch images |
 | `/banana inspire [category]` | Browse prompt database for ideas |
 | `/banana batch <idea> [N]` | Generate N variations (default: 3) |
+| `/banana brand` | Conversational brand guide builder (learn → refine → preview → save) |
 | `/banana setup` | Guided Google AI API key setup |
 | `/banana setup replicate` | Guided Replicate token setup (optional fallback) |
 | `/banana status` | Check version, installation, and API key status |

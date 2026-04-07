@@ -33,6 +33,7 @@ Before constructing ANY prompt or calling ANY tool, read:
 | `/banana slides [plan\|prompts\|generate]` | Slide deck pipeline |
 | `/banana inspire [category]` | Browse prompt database for ideas |
 | `/banana batch <idea> [N]` | Generate N variations (default: 3) |
+| `/banana brand` | Conversational brand guide builder (learn → refine → preview → save) |
 | `/banana setup` | Guided Google AI API key setup |
 | `/banana setup replicate` | Guided Replicate token setup (optional fallback) |
 | `/banana status` | Check version, installation, and API key status |
@@ -53,6 +54,12 @@ Gather the 5-Input Creative Brief: **Purpose** (where used?), **Audience** (who 
 If user mentions a brand/preset: `python3 ${CLAUDE_SKILL_DIR}/scripts/presets.py list`. Load with `show NAME`. Preset values are defaults -- user instructions override. See `references/presets.md` for Brand Style Guide fields.
 
 **Logo handling:** NEVER mention "logo" in prompts. Describe the area as "clean negative space." Logos are composited in presentation software after generation.
+
+**Example presets:** If no presets exist, offer to install examples: `ls ${CLAUDE_SKILL_DIR}/presets/` shows 12 pre-built brand guides. Copy with: `cp ${CLAUDE_SKILL_DIR}/presets/NAME.json ~/.banana/presets/`
+
+## Brand Builder (`/banana brand`)
+
+See `references/brand-builder.md` for the guided brand creation flow. Load that reference when user runs `/banana brand` and follow its 4-phase instructions: gather sources → auto-extract → refine → preview and save.
 
 ### Step 2: Select Domain Mode
 
@@ -165,6 +172,7 @@ Load on-demand -- do NOT load all at startup:
 - `references/post-processing.md` -- ImageMagick/FFmpeg pipelines, green screen
 - `references/cost-tracking.md` -- Pricing table, usage guide
 - `references/presets.md` -- Brand Style Guide schema (17 fields)
+- `references/brand-builder.md` -- Guided brand creation flow (learn → refine → preview → save)
 - `references/setup.md` -- Guided API key configuration flow
 
 ## Setup, Status & Update

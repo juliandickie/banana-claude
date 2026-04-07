@@ -1,0 +1,26 @@
+{
+  "name": "real-estate-luxury",
+  "description": "Luxury real estate — sophisticated, architectural, neutral tones, premium property",
+  "colors": ["#2C3E50", "#BFA980", "#FFFFFF", "#F5F5F0", "#1A1A1A"],
+  "style": "architectural photography, clean compositions, luxury interiors, premium property aesthetic",
+  "typography": "thin elegant sans-serif headlines, light weight body text with generous spacing",
+  "lighting": "bright natural light through large windows, golden hour exterior shots, balanced interior exposure",
+  "mood": "sophisticated, aspirational, serene, premium, exclusive",
+  "default_ratio": "16:9",
+  "default_resolution": "4K",
+  "background_styles": {
+    "charcoal-elegant": {"bg": "#2C3E50", "text": "#FFFFFF", "accent": "#BFA980"},
+    "ivory-clean": {"bg": "#F5F5F0", "text": "#2C3E50", "accent": "#BFA980"}
+  },
+  "visual_motifs": "clean architectural lines, subtle marble or stone texture at 8% opacity",
+  "logo_placement": "bottom-right, 10% of width",
+  "do_list": ["Show natural light and views", "Emphasize space and volume", "Include lifestyle elements (not empty rooms)", "Use wide-angle for interiors, telephoto for exteriors"],
+  "dont_list": ["No fish-eye distortion", "No cluttered rooms", "No artificial HDR look", "No cold or sterile empty spaces"],
+  "prompt_keywords": {
+    "aesthetic": ["architectural", "sophisticated", "luxury", "premium", "elegant"],
+    "mood": ["aspirational", "serene", "exclusive", "refined", "welcoming"],
+    "photography": ["natural light", "wide-angle interior", "golden hour exterior", "balanced exposure"]
+  },
+  "prompt_suffix": "Luxury architectural aesthetic with natural light, premium interiors, sophisticated and aspirational mood. Architectural Digest quality.",
+  "technical_specs": {"color_space": "sRGB", "min_dpi": 300}
+}

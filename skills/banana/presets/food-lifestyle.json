@@ -1,0 +1,26 @@
+{
+  "name": "food-lifestyle",
+  "description": "Food and lifestyle brand — warm, appetizing, rustic charm, Bon Appetit style",
+  "colors": ["#8B4513", "#D4A574", "#FFFFF0", "#C73E1D", "#2D5016"],
+  "style": "warm food photography, rustic surfaces, natural ingredients, Bon Appetit editorial style",
+  "typography": "warm serif headlines, clean sans-serif for recipes and body text",
+  "lighting": "warm natural window light from left, golden hour tones, soft directional shadows",
+  "mood": "warm, appetizing, authentic, inviting, comforting",
+  "default_ratio": "1:1",
+  "default_resolution": "2K",
+  "background_styles": {
+    "rustic-wood": {"bg": "#5C3D2E", "text": "#FFFFF0", "accent": "#D4A574"},
+    "marble-clean": {"bg": "#F5F0E8", "text": "#5C3D2E", "accent": "#C73E1D"}
+  },
+  "visual_motifs": "natural surface textures (wood grain, linen, marble) as backgrounds",
+  "logo_placement": "bottom-left, 10% of width",
+  "do_list": ["Show real ingredients and textures", "Use overhead or 45-degree angles for food", "Include natural props (herbs, utensils, linens)", "Keep styling authentic not over-produced"],
+  "dont_list": ["No artificial-looking food", "No flash photography look", "No cold or clinical lighting", "No plastic or synthetic surfaces"],
+  "prompt_keywords": {
+    "aesthetic": ["rustic", "artisanal", "warm", "appetizing", "authentic"],
+    "mood": ["inviting", "comforting", "wholesome", "joyful", "generous"],
+    "photography": ["natural window light", "golden hour", "shallow depth of field", "overhead shot"]
+  },
+  "prompt_suffix": "Warm food photography aesthetic with natural window light, rustic surfaces, appetizing and authentic mood. Bon Appetit editorial style.",
+  "technical_specs": {"color_space": "sRGB", "min_dpi": 150}
+}

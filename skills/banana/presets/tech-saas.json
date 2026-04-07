@@ -1,0 +1,26 @@
+{
+  "name": "tech-saas",
+  "description": "Clean modern SaaS product brand — trustworthy, minimal, professional",
+  "colors": ["#2563EB", "#1E40AF", "#F8FAFC", "#0F172A", "#64748B"],
+  "style": "clean minimal tech illustration, flat vectors, soft shadows, generous white space",
+  "typography": "bold geometric sans-serif headlines, light weight body text",
+  "lighting": "bright diffused studio lighting, no harsh shadows, high-key",
+  "mood": "professional, trustworthy, modern, approachable",
+  "default_ratio": "16:9",
+  "default_resolution": "2K",
+  "background_styles": {
+    "dark-mode": {"bg": "#0F172A", "text": "#F8FAFC", "accent": "#2563EB"},
+    "light-clean": {"bg": "#F8FAFC", "text": "#0F172A", "accent": "#2563EB"}
+  },
+  "visual_motifs": "subtle geometric grid pattern in light blue at 15% opacity",
+  "logo_placement": "top-left, 10% of width",
+  "do_list": ["Use generous white space", "Keep layouts clean and minimal", "Use brand blue for CTAs and accents", "Maintain high contrast for readability"],
+  "dont_list": ["No heavy gradients on backgrounds", "No more than 2 accent colors per image", "No decorative fonts", "No cluttered compositions"],
+  "prompt_keywords": {
+    "aesthetic": ["clean", "minimal", "modern", "professional", "sleek"],
+    "mood": ["trustworthy", "innovative", "approachable", "confident"],
+    "photography": ["bright", "high-key lighting", "sharp focus", "clean background"]
+  },
+  "prompt_suffix": "Clean minimal tech aesthetic with bright diffused lighting, generous white space, professional and trustworthy mood.",
+  "technical_specs": {"color_space": "sRGB", "min_dpi": 150}
+}
