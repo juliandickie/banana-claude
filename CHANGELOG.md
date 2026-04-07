@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-04-07
+
+### Added
+- **`/banana social`** -- platform-native image generation for 46 social media platforms
+  - Generates at nearest native ratio at 4K, auto-crops to exact platform pixel specs
+  - Groups platforms by ratio to avoid duplicate API calls (4 platforms at same ratio = 1 generation)
+  - 46 platforms across 12 families: Instagram, Facebook, YouTube, LinkedIn, Twitter/X, TikTok, Pinterest, Threads, Snapchat, Google Ads, Spotify
+  - Complete + Image Only modes, platform-aware negative space prompting
+  - `scripts/social.py` with generate, list, info subcommands
+  - `references/social-platforms.md` with full spec tables and shorthand names
+- **`/banana brand`** -- conversational brand guide builder (4-phase: gather sources → auto-extract → refine → preview and save)
+  - Learns from websites (via browser tools), PDFs, reference images, or from scratch
+  - Auto-extracts into 17-field Brand Style Guide schema
+  - Generates preview image before saving
+  - `references/brand-builder.md` with full conversational flow
+- **12 example brand preset files** in `skills/banana/presets/`:
+  tech-saas, luxury-dark, organic-natural, startup-bold, corporate-professional,
+  creative-agency, healthcare-clinical, fashion-editorial, food-lifestyle,
+  real-estate-luxury, fitness-energy, education-friendly
+- Merged banana-installer into main skill (`/banana status`, `/banana update`)
+- Feature Completion Checklist strengthened with Command Sync Check + Script Checks
+- Plugin validation fixes (agent frontmatter, slides.py permissions, manifest author)
+
+### Changed
+- SKILL.md: 15 commands in Quick Reference (was 14)
+- Plugin validated and passes all checks
+
 ## [1.6.0] - 2026-04-07
 
 ### Added
@@ -195,6 +222,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Batch variations, multi-turn chat, prompt inspiration
 - Install script with validation
 
+[1.7.0]: https://github.com/juliandickie/banana-claude/releases/tag/v1.7.0
 [1.6.0]: https://github.com/juliandickie/banana-claude/releases/tag/v1.6.0
 [1.5.0]: https://github.com/juliandickie/banana-claude/releases/tag/v1.5.0
 [1.4.2]: https://github.com/AgriciDaniel/banana-claude/releases/tag/v1.4.2

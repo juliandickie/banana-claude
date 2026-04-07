@@ -3,7 +3,7 @@ name: banana
 description: "Use when ANY request involves image creation, editing, visual asset production, slide generation, or creative direction. Triggers on: generate an image, create a photo, edit this picture, design a logo, make a banner, slide deck, social media visuals, and all /banana commands."
 argument-hint: "[generate|edit|chat|slides|inspire|batch|setup] <idea, path, or command>"
 metadata:
-  version: "1.6.0"
+  version: "1.7.0"
   author: juliandickie
   mcp-package: "@ycse/nanobanana-mcp"
 ---
