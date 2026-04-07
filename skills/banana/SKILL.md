@@ -33,6 +33,7 @@ Before constructing ANY prompt or calling ANY tool, read:
 | `/banana slides [plan\|prompts\|generate]` | Slide deck pipeline |
 | `/banana inspire [category]` | Browse prompt database for ideas |
 | `/banana batch <idea> [N]` | Generate N variations (default: 3) |
+| `/banana social <idea> --platforms <list>` | Platform-native image generation (47 platforms, 4K, auto-crop) |
 | `/banana brand` | Conversational brand guide builder (learn → refine → preview → save) |
 | `/banana setup` | Guided Google AI API key setup |
 | `/banana setup replicate` | Guided Replicate token setup (optional fallback) |
@@ -56,6 +57,15 @@ If user mentions a brand/preset: `python3 ${CLAUDE_SKILL_DIR}/scripts/presets.py
 **Logo handling:** NEVER mention "logo" in prompts. Describe the area as "clean negative space." Logos are composited in presentation software after generation.
 
 **Example presets:** If no presets exist, offer to install examples: `ls ${CLAUDE_SKILL_DIR}/presets/` shows 12 pre-built brand guides. Copy with: `cp ${CLAUDE_SKILL_DIR}/presets/NAME.json ~/.banana/presets/`
+
+## Social Media Generation (`/banana social`)
+
+Generate platform-native images at the correct ratio and max resolution for each platform. See `references/social-platforms.md` for all 47 platforms with specs. Use the script for batch generation:
+```bash
+python3 ${CLAUDE_SKILL_DIR}/scripts/social.py generate --prompt "..." --platforms ig-feed,yt-thumb,li-feed
+python3 ${CLAUDE_SKILL_DIR}/scripts/social.py list   # show all 47 platforms
+```
+Generates at 4K, auto-crops to exact platform pixel specs. Saves both original + cropped.
 
 ## Brand Builder (`/banana brand`)
 
@@ -172,6 +182,7 @@ Load on-demand -- do NOT load all at startup:
 - `references/post-processing.md` -- ImageMagick/FFmpeg pipelines, green screen
 - `references/cost-tracking.md` -- Pricing table, usage guide
 - `references/presets.md` -- Brand Style Guide schema (17 fields)
+- `references/social-platforms.md` -- 47 social media platform specs, ratios, pixel targets, negative space
 - `references/brand-builder.md` -- Guided brand creation flow (learn → refine → preview → save)
 - `references/setup.md` -- Guided API key configuration flow
 

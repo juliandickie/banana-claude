@@ -200,6 +200,9 @@ claude
 # Multi-turn creative session
 /banana chat
 
+# Generate for multiple social platforms at once
+/banana social "product launch hero" --platforms ig-feed,yt-thumb,li-feed
+
 # Build a brand guide from your website
 /banana brand
 
@@ -225,6 +228,7 @@ Claude will ask about your brand, select the right domain mode (Cinema, Product,
 | `/banana slides [plan\|prompts\|generate]` | Slide deck pipeline: content → design brief → prompts → batch images |
 | `/banana inspire [category]` | Browse prompt database for ideas |
 | `/banana batch <idea> [N]` | Generate N variations (default: 3) |
+| `/banana social <idea> --platforms <list>` | Platform-native image generation (47 platforms, 4K, auto-crop) |
 | `/banana brand` | Conversational brand guide builder (learn → refine → preview → save) |
 | `/banana setup` | Guided Google AI API key setup |
 | `/banana setup replicate` | Guided Replicate token setup (optional fallback) |
