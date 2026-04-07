@@ -57,6 +57,12 @@ This repo follows the official Claude Code plugin layout:
 | `skills/banana/scripts/replicate_generate.py` | Replicate API fallback for generation. Uses urllib.request (stdlib). |
 | `skills/banana/scripts/replicate_edit.py` | Replicate API fallback for editing. Uses urllib.request (stdlib). |
 | `skills/banana/scripts/presets.py` | Brand Style Guide CRUD (list, show, create, delete). |
+| `skills/banana/scripts/batch.py` | CSV batch workflow parser with cost estimates. |
+| `skills/banana/scripts/cost_tracker.py` | Cost logging and summaries (log, summary, today, estimate). |
+| `skills/banana/scripts/setup_mcp.py` | MCP + Replicate key configuration. Stores keys in ~/.banana/config.json. |
+| `skills/banana/scripts/validate_setup.py` | Installation and setup verification checks. |
+| `skills/banana/references/cost-tracking.md` | Pricing table, free tier limits, usage tracking guide. |
+| `skills/banana/references/post-processing.md` | ImageMagick/FFmpeg pipelines, green screen transparency, format conversion. |
 | `agents/brief-constructor.md` | Subagent for prompt construction. |
 
 ## Scripts use stdlib only
