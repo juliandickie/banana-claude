@@ -52,14 +52,24 @@ Apply the same rules as regular prompt construction:
 
 ## Output Format
 
-Present the analysis to the user as:
+Present the analysis with THREE perspectives — how Claude sees it, how Gemini sees it, and a blended best-of-both version. This teaches users how different AI models interpret the same image and how to write better descriptions.
+
+### Step 5: Get Gemini's Perspective
+
+Send the image to Gemini via `gemini_chat` with this prompt:
+"Describe this image in precise detail as if writing a prompt to recreate it. Include: subject appearance, action/pose, setting/location, camera angle and framing, lighting setup, color grading, and overall style. Be specific about materials, textures, and atmosphere."
+
+### Step 6: Compare and Blend
+
+Compare Claude's analysis (Steps 2-3) with Gemini's response (Step 5) and create a blended version that takes the best details from each.
+
+## Output Format
 
 ```
 ## Reverse Prompt Analysis
 
 **Domain Mode:** [mode]
 **Estimated Aspect Ratio:** [ratio]
-**Estimated Resolution:** [resolution recommendation]
 
 ### 5-Component Breakdown
 
@@ -71,9 +81,34 @@ Present the analysis to the user as:
 | **Composition** | [camera/framing] |
 | **Style** | [lighting/aesthetic/anchor] |
 
-### Reconstructed Prompt
+---
 
-[The full prompt as a single narrative paragraph, ready to copy and use]
+### Claude's Interpretation
+
+[Claude's full prompt — how Claude describes the image using the 5-Component
+Formula. Tends to be more structured and technically precise about camera
+specs, composition terminology, and prestigious context anchors.]
+
+### Gemini's Interpretation
+
+[Gemini's description — how Gemini naturally describes the same image.
+Tends to be more atmospheric and may notice different details, textures,
+or emotional qualities that Claude's structured approach misses.]
+
+### Blended Prompt (Best of Both)
+
+[A merged version that combines Claude's technical precision with Gemini's
+atmospheric detail. This is the recommended prompt to use for recreation.
+It should be a single narrative paragraph, ready to copy.]
+
+---
+
+### What You Can Learn From the Comparison
+
+[2-3 bullet points highlighting interesting differences:
+- "Claude focused on [X] while Gemini noticed [Y]"
+- "The blended version adds [Z] which neither caught alone"
+- "For this type of image, [specific technique] makes the biggest difference"]
 
 ### Settings
 
