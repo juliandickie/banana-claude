@@ -374,16 +374,23 @@ banana-claude/                         # Claude Code Plugin
 │   ├── plugin.json                    # Plugin manifest
 │   └── marketplace.json               # Marketplace catalog
 ├── skills/banana/                     # Main skill
-│   ├── SKILL.md                       # Creative Director orchestrator (v1.6, ~170 lines)
+│   ├── SKILL.md                       # Creative Director orchestrator (v1.7, ~191 lines)
 │   ├── references/
-│   │   ├── prompt-engineering.md      # 5-component formula, domain modes, PEEL strategy
+│   │   ├── prompt-engineering.md      # 5-component formula, 11 domain modes, PEEL strategy
 │   │   ├── gemini-models.md           # Model specs, resolution tables, input limits
 │   │   ├── mcp-tools.md              # MCP tool parameters and responses
 │   │   ├── replicate.md              # Replicate backend API reference
+│   │   ├── social-platforms.md        # 46 social media platform specs and ratios
+│   │   ├── brand-builder.md           # Conversational brand guide creation flow
 │   │   ├── post-processing.md        # ImageMagick/FFmpeg pipelines, green screen
 │   │   ├── cost-tracking.md          # Pricing table, usage guide
-│   │   ├── presets.md                # Brand Style Guide schema and examples
+│   │   ├── presets.md                # Brand Style Guide schema (17 fields)
 │   │   └── setup.md                  # Guided API key configuration flow
+│   ├── presets/                       # 12 example brand guide JSON files
+│   │   ├── tech-saas.json
+│   │   ├── luxury-dark.json
+│   │   ├── ... (10 more)
+│   │   └── education-friendly.json
 │   └── scripts/
 │       ├── setup_mcp.py              # Configure MCP + Replicate
 │       ├── validate_setup.py         # Verify installation
@@ -391,6 +398,7 @@ banana-claude/                         # Claude Code Plugin
 │       ├── edit.py                   # Direct Gemini API fallback -- editing
 │       ├── replicate_generate.py     # Replicate API fallback -- generation
 │       ├── replicate_edit.py         # Replicate API fallback -- editing
+│       ├── social.py                 # Social media platform-native generation
 │       ├── slides.py                 # Slide deck batch generation pipeline
 │       ├── cost_tracker.py           # Cost logging and summaries
 │       ├── presets.py                # Brand Style Guide management
