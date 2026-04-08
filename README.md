@@ -189,32 +189,46 @@ To update: `cd ~/banana-claude && git pull && bash install.sh`
 ## Quick Start
 
 ```bash
-# Start Claude Code
-claude
-
-# Generate an image
+# Generate an image (Claude acts as Creative Director)
 /banana generate "a hero image for a coffee shop website"
 
 # Edit an existing image
-/banana edit ~/photo.png "remove the background"
+/banana edit ~/photo.png "remove the background and add warm lighting"
 
-# Multi-turn creative session
+# Multi-turn creative session with character/style consistency
 /banana chat
 
-# Save a product for consistent reuse
-/banana asset create "my-headphones" --type product --reference ~/photos/headphones.jpg --description "wireless earbuds in charging case"
+# Generate for multiple social platforms at once (46 platforms)
+/banana social "product launch hero" --platforms ig-feed,yt-thumb,li-feed,tt-feed
 
-# Generate for multiple social platforms at once
-/banana social "product launch hero" --platforms ig-feed,yt-thumb,li-feed
-
-# Build a brand guide from your website
+# Build a brand guide from your website or documents
 /banana brand
 
-# Generate a slide deck from content
+# Generate a slide deck from transcripts or content
 /banana slides plan --content ~/transcripts/ --preset my-brand
 
-# Browse prompt database for ideas
+# Save a product/character for consistent reuse across sessions
+/banana asset create "my-headphones" --type product \
+  --reference ~/photos/headphones.jpg \
+  --description "wireless earbuds in white charging case"
+
+# Use a brand preset for visual consistency
+/banana preset list                    # see available presets
+/banana preset create my-brand --colors "#000,#FFC000" --style "premium dark"
+
+# Generate 3 variations (Literal, Creative, Premium)
+/banana batch "landing page hero for fintech app" 3
+
+# Browse prompt inspiration
 /banana inspire
+
+# Check costs and usage
+/banana cost summary
+
+# Setup, status, and updates
+/banana setup                          # configure API key (guided)
+/banana status                         # check version + keys
+/banana update                         # pull latest from GitHub
 ```
 
 Claude will ask about your brand, select the right domain mode (Cinema, Product, Portrait, Editorial, UI, Logo, Landscape, Infographic, Abstract, Presentation), construct a detailed prompt with lighting and composition, set the right aspect ratio, and generate.
