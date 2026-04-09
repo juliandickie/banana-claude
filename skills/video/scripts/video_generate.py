@@ -133,24 +133,26 @@ def _submit_operation(prompt, model, duration, ratio, resolution, api_key,
 
     if first_frame:
         b64, mime = _read_image_base64(first_frame)
-        instance["image"] = {"bytesBase64Encoded": b64, "mimeType": mime}
+        instance["image"] = {"inlineData": {"data": b64, "mimeType": mime}}
 
     if last_frame:
         b64, mime = _read_image_base64(last_frame)
-        instance["lastFrame"] = {"bytesBase64Encoded": b64, "mimeType": mime}
+        instance["lastFrame"] = {"inlineData": {"data": b64, "mimeType": mime}}
 
     if ref_images:
         ref_list = []
         for img_path in ref_images[:3]:
             b64, mime = _read_image_base64(img_path)
-            ref_list.append({"bytesBase64Encoded": b64, "mimeType": mime})
+            ref_list.append({
+                "image": {"inlineData": {"data": b64, "mimeType": mime}},
+                "referenceType": "asset"
+            })
         instance["referenceImages"] = ref_list
 
     body = {
         "instances": [instance],
         "parameters": {
             "aspectRatio": ratio,
-            "personGeneration": "allow_adult",
             "sampleCount": 1,
             "durationSeconds": duration,
         },
@@ -195,12 +197,17 @@ def _poll_operation(operation_name, api_key, interval, max_wait):
         time.sleep(interval)
 
 
-def _save_video(response, output_dir):
+def _save_video(response, output_dir, api_key=None):
     """Extract video from response, save as MP4, return path."""
     resp_body = response.get("response", {})
-    samples = resp_body.get("generatedSamples", [])
+    # Try the documented path: response.generateVideoResponse.generatedSamples
+    gen_resp = resp_body.get("generateVideoResponse", {})
+    samples = gen_resp.get("generatedSamples", [])
+    # Fallback to direct path for older API versions
     if not samples:
-        _error_exit("No video in response: generatedSamples is empty")
+        samples = resp_body.get("generatedSamples", [])
+    if not samples:
+        _error_exit(f"No video in response. Response keys: {list(resp_body.keys())}, body: {json.dumps(resp_body)[:300]}")
 
     video_data = samples[0].get("video", {})
     b64 = video_data.get("bytesBase64Encoded")
@@ -221,8 +228,13 @@ def _save_video(response, output_dir):
             f.write(base64.b64decode(b64))
     else:
         _progress({"status": "downloading", "uri": uri})
+        # Google video URIs require API key authentication
+        download_url = uri
+        if api_key and "key=" not in uri:
+            sep = "&" if "?" in uri else "?"
+            download_url = f"{uri}{sep}key={api_key}"
         try:
-            req = urllib.request.Request(uri)
+            req = urllib.request.Request(download_url)
             with urllib.request.urlopen(req, timeout=120) as resp:
                 with open(output_path, "wb") as f:
                     while True:
@@ -231,7 +243,7 @@ def _save_video(response, output_dir):
                             break
                         f.write(chunk)
         except (urllib.error.URLError, urllib.error.HTTPError) as e:
-            _error_exit(f"Failed to download video from {uri}: {e}")
+            _error_exit(f"Failed to download video: {e}")
 
     return str(output_path)
 
@@ -293,7 +305,7 @@ def main():
     response = _poll_operation(operation_name, api_key, args.poll_interval, args.max_wait)
 
     # Step 3: Save
-    video_path = _save_video(response, args.output)
+    video_path = _save_video(response, args.output, api_key)
     gen_time = round(time.time() - gen_start, 1)
 
     result = {

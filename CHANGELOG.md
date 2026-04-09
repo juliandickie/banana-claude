@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.1] - 2026-04-09
+
+### Fixed
+- **VEO API integration** -- Three bug fixes discovered when first running against real API:
+  - Removed unsupported `personGeneration: allow_adult` parameter (text-to-video only allows `allow_all` or omission)
+  - Fixed image format from `bytesBase64Encoded` to `inlineData.data` (matches API spec for first/last frame and reference images)
+  - Fixed response path from `response.generatedSamples` to `response.generateVideoResponse.generatedSamples` (with fallback for older API versions)
+  - Added API key authentication to video URI downloads
+- Verified end-to-end: 4s and 6s clips successfully generated and downloaded
+
+### Added
+- **8 new feature images** in README: video pipeline, video domain modes, sequence production, storyboard workflow, A/B testing, deck builder, analytics dashboard, content pipeline
+- **2 sample video clips** in README: product reveal (6s/1080p) and banana spinning (4s/720p) — actual VEO 3.1 outputs
+
 ## [3.4.0] - 2026-04-09
 
 ### Added
@@ -397,6 +411,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Batch variations, multi-turn chat, prompt inspiration
 - Install script with validation
 
+[3.4.1]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v3.4.1
 [3.4.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v3.4.0
 [3.3.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v3.3.0
 [3.2.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v3.2.0

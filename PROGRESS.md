@@ -7,7 +7,7 @@
 
 - **Repo:** https://github.com/juliandickie/nano-banana-studio
 - **Origin:** https://github.com/AgriciDaniel/banana-claude (forked at v1.4.1, detached at v2.1.0)
-- **Current version:** 3.4.0
+- **Current version:** 3.4.1
 - **Local path:** `/Users/juliandickie/code/nano-banana-pro/banana-claude/`
 - **Plugin layout:** `.claude-plugin/` + `skills/banana/` (image) + `skills/video/` (video) + `agents/`
 

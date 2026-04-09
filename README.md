@@ -10,7 +10,7 @@ AI image and video generation plugin for Claude Code where **Claude acts as Crea
 Unlike simple API wrappers, Claude interprets your intent, selects domain expertise, constructs optimized prompts, and orchestrates generation for the best possible results — for both still images and video clips with synchronized audio.
 
 [![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-blue)](https://claude.ai/claude-code)
-[![Version](https://img.shields.io/badge/version-3.4.0-coral)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.4.1-coral)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Origin](https://img.shields.io/badge/origin-AgriciDaniel%2Fbanana--claude-gray)](https://github.com/AgriciDaniel/banana-claude)
 
@@ -40,18 +40,41 @@ Unlike simple API wrappers, Claude interprets your intent, selects domain expert
 Built on [AgriciDaniel/banana-claude](https://github.com/AgriciDaniel/banana-claude), extended with features driven by production use and research analysis of Google's prompting guidance:
 
 ### Video Generation with VEO 3.1 (v3.0.0–v3.4.0)
+
+![Video Pipeline](screenshots/video-pipeline.webp)
+
+**Sample output (generated with `/video generate`):**
+
+https://github.com/juliandickie/nano-banana-studio/raw/main/screenshots/videos/product-reveal-demo.mp4
+
+> 6-second product reveal at 1080p with native audio. Generated in ~47 seconds via VEO 3.1.
+
 New `/video` skill powered by Google VEO 3.1. Text-to-video, image-to-video (animate stills from `/banana`), and first/last frame keyframe interpolation for seamless shot chaining. 4-8 second clips at up to 4K with native synchronized audio (dialogue, SFX, ambient). 6 video domain modes (Product Reveal, Story-Driven, Environment Reveal, Social Short, Cinematic, Tutorial/Demo). Multi-shot sequence production with storyboard approval — generate frame pairs cheaply with `/banana` before committing to video generation. Clip extension to 148 seconds. FFmpeg toolkit for concat/trim/convert. Same API key, shared brand presets and asset registry.
 
+![Video Domain Modes](screenshots/video-domain-modes.webp)
+
+![Sequence Production](screenshots/sequence-production.webp)
+
+![Storyboard Workflow](screenshots/storyboard-workflow.webp)
+
 ### Multi-Modal Content Pipeline (v2.7.0)
+
+![Content Pipeline](screenshots/content-pipeline.webp)
 One idea, complete content package. Orchestrates hero image, social media pack, email headers, and format variants from a single brief. Two-phase workflow: plan (cost estimate) then generate. Dependency handling ensures email/formats wait for the hero image.
 
 ### Analytics Dashboard (v2.6.0)
+
+![Analytics Dashboard](screenshots/analytics-dashboard.webp)
 Self-contained HTML dashboard with inline SVG charts showing cost trends, model/domain usage, resolution distribution, and quota monitoring. Aggregates data from cost tracker, session history, and A/B preferences. No external dependencies — opens in any browser.
 
 ### Deck Builder (v2.5.0)
+
+![Deck Builder](screenshots/deck-builder-new.webp)
 Assemble generated slide images into editable .pptx presentations with text layers, brand styling, and logo placement. Three layouts: fullbleed, standard, split. Reads generation-summary.json from `/banana slides` for slide notes with original prompts.
 
 ### Smart A/B Testing (v2.4.0)
+
+![A/B Testing](screenshots/ab-testing.webp)
 Generate Literal/Creative/Premium prompt variations from the same brief. Rate the results on a 1-5 scale, and preferences are tracked over time to learn which styles work best for you.
 
 ### Session History with Gallery Export (v2.3.0)
