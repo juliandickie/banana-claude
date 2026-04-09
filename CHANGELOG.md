@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-04-09
+
+### Added
+- **Video domain modes** -- 6 modes (Product Reveal, Story-Driven, Environment Reveal, Social Short, Cinematic, Tutorial/Demo) with camera vocabulary and modifier libraries
+- **Video audio guide** -- Dialogue, SFX, ambient, and music prompting strategies with domain-specific patterns
+- **video-brief-constructor agent** -- Subagent for video prompt construction using 5-Part Framework
+- **Shot types for sequences** -- Establishing, medium, close-up, cutaway, B-roll, transition with editing rhythm guide
+- `references/video-domain-modes.md`, `references/video-audio.md`, `agents/video-brief-constructor.md`
+
 ## [3.0.0] - 2026-04-09
 
 ### Added
@@ -363,6 +372,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Batch variations, multi-turn chat, prompt inspiration
 - Install script with validation
 
+[3.1.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v3.1.0
 [3.0.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v3.0.0
 [2.7.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v2.7.0
 [2.6.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v2.6.0
