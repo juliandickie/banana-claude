@@ -27,7 +27,7 @@ argument-hint: "[generate|edit|chat|slides|social|brand|asset|reverse|book|batch
 | `/banana slides [plan\|prompts\|generate]` | Slide deck pipeline |
 | `/banana inspire [category]` | Browse prompt database for ideas |
 | `/banana batch <idea> [N]` | Generate N variations (default: 3) |
-| `/banana social <idea> --platforms <list>` | Platform-native image generation (47 platforms, 4K, auto-crop) |
+| `/banana social <idea> --platforms <list>` | Platform-native image generation (46 platforms, 4K, auto-crop) |
 | `/banana brand` | Conversational brand guide builder (learn → refine → preview → save) |
 | `/banana asset [list\|show\|create\|delete]` | Manage persistent character/product/object references |
 | `/banana reverse <image-path>` | Analyze image → extract 5-Component Formula prompt to recreate it |
@@ -163,7 +163,7 @@ Analyze an image and extract the prompt that would recreate it. See `references/
 
 ## /banana social
 
-Generate platform-native images at correct ratios for 47 platforms. See `references/social-platforms.md` for specs. Script: `python3 ${CLAUDE_SKILL_DIR}/scripts/social.py generate --prompt "..." --platforms ig-feed,yt-thumb`
+Generate platform-native images at correct ratios for 46 platforms. See `references/social-platforms.md` for specs. Script: `python3 ${CLAUDE_SKILL_DIR}/scripts/social.py generate --prompt "..." --platforms ig-feed,yt-thumb`
 
 ## /banana brand
 

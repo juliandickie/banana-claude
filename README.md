@@ -19,7 +19,7 @@ Unlike simple API wrappers, Claude interprets your intent, selects domain expert
 <details>
 <summary>Table of Contents</summary>
 
-- [What's New in This Fork](#whats-new-in-this-fork)
+- [Features](#features)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Commands](#commands)
@@ -39,9 +39,9 @@ Unlike simple API wrappers, Claude interprets your intent, selects domain expert
 
 </details>
 
-## What's New in This Fork
+## Features
 
-This project extends [AgriciDaniel/banana-claude](https://github.com/AgriciDaniel/banana-claude) with features driven by production use and research analysis of Google's prompting guidance:
+Built on [AgriciDaniel/banana-claude](https://github.com/AgriciDaniel/banana-claude), extended with features driven by production use and research analysis of Google's prompting guidance:
 
 ### Visual Brand Book Generator (v2.0.0)
 Generate complete visual brand books from any preset in three formats: Markdown + images, PowerPoint (.pptx), and self-contained HTML (print to PDF). Three tiers — quick (5 images), standard (16), comprehensive (25+). Automatic Hex → RGB → CMYK → Pantone color conversion with 156 Pantone Coated colors.
@@ -258,7 +258,7 @@ Claude will ask about your brand, select the right domain mode (Cinema, Product,
 | `/banana slides [plan\|prompts\|generate]` | Slide deck pipeline: content → design brief → prompts → batch images |
 | `/banana inspire [category]` | Browse prompt database for ideas |
 | `/banana batch <idea> [N]` | Generate N variations (default: 3) |
-| `/banana social <idea> --platforms <list>` | Platform-native image generation (47 platforms, 4K, auto-crop) |
+| `/banana social <idea> --platforms <list>` | Platform-native image generation (46 platforms, 4K, auto-crop) |
 | `/banana brand` | Conversational brand guide builder (learn → refine → preview → save) |
 | `/banana asset [list\|show\|create\|delete]` | Manage persistent character/product/object references |
 | `/banana reverse <image-path>` | Analyze image → extract 5-Component Formula prompt |
@@ -501,7 +501,7 @@ claude plugin add juliandickie/nano-banana-studio
 ### What's different
 
 nano-banana-studio includes everything in banana-claude plus: slides pipeline,
-social media generation (47 platforms), brand builder, asset registry, reverse
+social media generation (46 platforms), brand builder, asset registry, reverse
 prompt engineering, brand book generator, cost tracking, Replicate fallback, and
 12 brand presets. See the [changelog](CHANGELOG.md) for details.
 
