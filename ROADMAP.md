@@ -2,7 +2,7 @@
 
 ## Context
 
-Nano Banana Studio v2.1.0 is a comprehensive Creative Director plugin for AI image generation. This roadmap captures planned features, organized by implementation priority.
+Nano Banana Studio v2.2.0 is a comprehensive Creative Director plugin for AI image generation. This roadmap captures planned features, organized by implementation priority.
 
 **Architecture note:** As this grows, the skill should split into three interlinked skills:
 1. **Brand Learning** (`/banana brand`) — Brand guide creation, asset registry, presets
@@ -24,6 +24,7 @@ These would share the brand preset system and asset registry but have their own 
 | 5 | `/banana asset` — persistent asset registry | v1.8.0 | characters, products, equipment, environments |
 | 6 | `/banana reverse` — image-to-prompt reverse engineering | v1.9.0 | Claude vs Gemini perspectives + blended prompt |
 | 7 | `/banana book` — visual brand book generator | v2.0.0 | markdown + pptx + html, 3 tiers, Pantone colors |
+| 8 | `/banana formats` — multi-format image converter | v2.2.0 | PNG/WebP/JPEG at 4K/2K/1K/512, sips fallback |
 
 ---
 
@@ -73,14 +74,6 @@ Generate all three, display with prompts, let user rate. Over time, learn which 
 
 `/banana history` shows all generations in the current session with prompts, settings, and file paths.
 
-### Multi-Format Output
-
-Generate once, output in multiple formats:
-
-```
-/banana generate "hero image" --output-formats png,webp --output-sizes 4k,2k,1k
-```
-
 ### Analytics Dashboard
 
 Local web dashboard showing cost trends, domain mode usage, quota monitoring.
@@ -112,6 +105,5 @@ Local web dashboard showing cost trends, domain mode usage, quota monitoring.
 | 2 | Deck builder (.pptx output) | Medium | Very High | Planned |
 | 3 | A/B testing with prompt variations | Low | Medium | Planned |
 | 4 | Session history gallery | Low | Medium | Planned |
-| 5 | Multi-format output | Low | Medium | Planned |
-| 6 | Analytics dashboard | Medium | Medium | Future |
-| 7 | Multi-modal content pipeline | High | High | Future |
+| 5 | Analytics dashboard | Medium | Medium | Planned |
+| 6 | Multi-modal content pipeline | High | High | Planned |

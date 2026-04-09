@@ -63,6 +63,8 @@ This repo follows the official Claude Code plugin layout:
 | `skills/banana/scripts/pantone_lookup.py` | Color conversion: Hex → RGB → CMYK → nearest Pantone (156 colors). |
 | `skills/banana/scripts/assets.py` | Asset registry CRUD (list, show, create, delete, add-image). |
 | `skills/banana/scripts/presets.py` | Brand Style Guide CRUD (list, show, create, delete). |
+| `skills/banana/scripts/multiformat.py` | Multi-format image converter (PNG/WebP/JPEG at 4K/2K/1K/512). |
+| `skills/banana/references/multi-format.md` | Multi-format conversion guide (sizes, formats, prerequisites). |
 | `skills/banana/scripts/batch.py` | CSV batch workflow parser with cost estimates. |
 | `skills/banana/scripts/cost_tracker.py` | Cost logging and summaries (log, summary, today, estimate). |
 | `skills/banana/scripts/setup_mcp.py` | MCP + Replicate key configuration. Stores keys in ~/.banana/config.json. |

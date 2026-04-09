@@ -38,6 +38,8 @@ argument-hint: "[generate|edit|chat|slides|social|brand|asset|reverse|book|batch
 | `/banana update` | Pull latest version from GitHub |
 | `/banana preset [list\|create\|show\|delete]` | Manage brand/style presets |
 | `/banana cost [summary\|today\|estimate]` | View cost tracking and estimates |
+| `/banana formats <path> [--formats] [--sizes]` | Convert image to multiple formats/sizes |
+| `/banana history [list\|show\|export\|sessions]` | View session generation history and export gallery |
 
 ## Creative Director Pipeline
 
@@ -108,10 +110,11 @@ If needed, use ImageMagick for cropping, format conversion, background removal. 
 | MCP unavailable | Use fallback chain (Step 7) |
 | Vague request | Ask clarifying questions |
 
-### Step 10: Log Cost
+### Step 10: Log Cost + History
 
 ```bash
 python3 ${CLAUDE_SKILL_DIR}/scripts/cost_tracker.py log --model MODEL --resolution RES --prompt "brief"
+python3 ${CLAUDE_SKILL_DIR}/scripts/history.py log --prompt "full prompt" --image-path PATH --model MODEL --ratio RATIO --resolution RES --session-id SESSION_ID
 ```
 
 ### Step 11: Return Results
@@ -180,6 +183,23 @@ Generate a complete visual brand book from a preset in three formats. See `refer
 python3 ${CLAUDE_SKILL_DIR}/scripts/brandbook.py generate --preset NAME --output ~/brand-book/ --tier standard
 ```
 
+## /banana formats
+
+Convert any generated image to multiple formats and sizes. Generate once, convert many times.
+```bash
+python3 ${CLAUDE_SKILL_DIR}/scripts/multiformat.py convert --input PATH --formats png,webp,jpeg --sizes 4k,2k,1k
+```
+See `references/multi-format.md` for size tables, format specs, and prerequisites.
+
+## /banana history
+
+View and export session generation history. Each generation is automatically logged in Step 10.
+```bash
+python3 ${CLAUDE_SKILL_DIR}/scripts/history.py list
+python3 ${CLAUDE_SKILL_DIR}/scripts/history.py export --format md --output ~/gallery.md
+```
+See `references/session-history.md` for session ID management and export formats.
+
 ## Setup, Status & Update
 
 See `references/setup.md` for guided flows. When user runs `/banana setup`, `/banana status`, or `/banana update`, load that reference and follow its instructions.
@@ -194,9 +214,11 @@ Load on-demand -- do NOT load all at startup:
 - `references/post-processing.md` -- ImageMagick/FFmpeg pipelines, green screen
 - `references/cost-tracking.md` -- Pricing table, usage guide
 - `references/presets.md` -- Brand Style Guide schema (17 fields)
-- `references/social-platforms.md` -- 47 social media platform specs, ratios, pixel targets, negative space
+- `references/social-platforms.md` -- 46 social media platform specs, ratios, pixel targets, negative space
 - `references/brand-builder.md` -- Guided brand creation flow (learn → refine → preview → save)
 - `references/asset-registry.md` -- Persistent asset registry (characters, products, objects, environments)
 - `references/reverse-prompt.md` -- Image analysis → 5-Component Formula prompt extraction
 - `references/brand-book.md` -- Brand book generator (tiers, formats, color specs)
 - `references/setup.md` -- Guided API key configuration flow
+- `references/multi-format.md` -- Multi-format conversion (sizes, formats, ImageMagick)
+- `references/session-history.md` -- Session history tracking, gallery export

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-04-09
+
+### Added
+- **`/banana formats`** -- Multi-format image converter: generate once, convert to PNG/WebP/JPEG at 4K/2K/1K/512
+  - `scripts/multiformat.py` (~200 lines) with 3-tier backend: ImageMagick v7 → v6 → macOS sips
+  - Auto-detects source aspect ratio, scales to correct pixel dimensions per size tier
+  - Outputs organized directory with `manifest.json` for downstream tools
+  - `references/multi-format.md` -- size tables, format specs, prerequisites
+
 ## [2.1.0] - 2026-04-09
 
 ### Changed
@@ -290,6 +299,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Batch variations, multi-turn chat, prompt inspiration
 - Install script with validation
 
+[2.2.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v2.2.0
 [2.1.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v2.1.0
 [2.0.1]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v2.0.1
 [2.0.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v2.0.0
