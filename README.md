@@ -10,7 +10,7 @@ AI image generation plugin for Claude Code where **Claude acts as Creative Direc
 Unlike simple API wrappers, Claude interprets your intent, selects domain expertise, constructs optimized prompts using Google's official 5-component formula, and orchestrates Gemini for the best possible results.
 
 [![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-blue)](https://claude.ai/claude-code)
-[![Version](https://img.shields.io/badge/version-2.7.0-coral)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.0.0-coral)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Origin](https://img.shields.io/badge/origin-AgriciDaniel%2Fbanana--claude-gray)](https://github.com/AgriciDaniel/banana-claude)
 
@@ -42,6 +42,9 @@ Unlike simple API wrappers, Claude interprets your intent, selects domain expert
 ## Features
 
 Built on [AgriciDaniel/banana-claude](https://github.com/AgriciDaniel/banana-claude), extended with features driven by production use and research analysis of Google's prompting guidance:
+
+### Video Generation with VEO 3.1 (v3.0.0)
+New `/video` skill powered by Google VEO 3.1. Text-to-video, image-to-video (animate stills from `/banana`), and first/last frame keyframe interpolation. 4-8 second clips at up to 4K with native synchronized audio. Same API key as image generation. Shares brand presets and asset registry with the image skill for cross-media consistency.
 
 ### Multi-Modal Content Pipeline (v2.7.0)
 One idea, complete content package. Orchestrates hero image, social media pack, email headers, and format variants from a single brief. Two-phase workflow: plan (cost estimate) then generate. Dependency handling ensures email/formats wait for the hero image.
@@ -507,6 +510,13 @@ nano-banana-studio/                    # Claude Code Plugin
 │       ├── history.py                 # Session generation history and gallery export
 │       ├── multiformat.py             # Multi-format image converter (PNG/WebP/JPEG)
 │       └── batch.py                  # CSV batch workflow parser
+├── skills/video/                      # Video generation skill (VEO 3.1)
+│   ├── SKILL.md                       # Video Creative Director orchestrator
+│   ├── scripts/
+│   │   └── video_generate.py          # Async VEO API with polling
+│   └── references/
+│       ├── veo-models.md              # VEO model specs, pricing, rate limits
+│       └── video-prompt-engineering.md # 5-Part Video Framework, camera motion
 └── agents/
     └── brief-constructor.md           # Subagent for prompt construction
 ```

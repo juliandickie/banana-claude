@@ -2,7 +2,7 @@
 
 ## Context
 
-Nano Banana Studio v2.7.0 is a comprehensive Creative Director plugin for AI image generation. This roadmap captures planned features, organized by implementation priority.
+Nano Banana Studio v3.0.0 is a comprehensive Creative Director plugin for AI image generation. This roadmap captures planned features, organized by implementation priority.
 
 **Architecture note:** As this grows, the skill should split into three interlinked skills:
 1. **Brand Learning** (`/banana brand`) — Brand guide creation, asset registry, presets
@@ -30,6 +30,7 @@ These would share the brand preset system and asset registry but have their own 
 | 11 | `/banana deck` — slide deck builder | v2.5.0 | .pptx with 3 layouts, brand styling, logo placement |
 | 12 | `/banana analytics` — analytics dashboard | v2.6.0 | HTML with SVG charts, cost/usage/quota |
 | 13 | `/banana content` — multi-modal content pipeline | v2.7.0 | hero + social + email + formats orchestration |
+| 14 | `/video` — VEO 3.1 video generation (core) | v3.0.0 | Text-to-video, image-to-video, first/last frame |
 
 ---
 
@@ -74,4 +75,5 @@ Implementation: `video_generate.py` (stdlib-only, same pattern), `/banana video`
 
 | # | Feature | Effort | Impact | Status |
 |---|---------|--------|--------|--------|
-| 1 | `/banana video` with VEO 3.1 | Medium | Very High | Next |
+| 1 | `/video` sequence production (storyboard, multi-shot) | Medium | Very High | Next |
+| 2 | `/video extend` + `/video stitch` | Low | Medium | Planned |

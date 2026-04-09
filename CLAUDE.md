@@ -81,6 +81,10 @@ This repo follows the official Claude Code plugin layout:
 | `skills/banana/scripts/validate_setup.py` | Installation and setup verification checks. |
 | `skills/banana/references/cost-tracking.md` | Pricing table, free tier limits, usage tracking guide. |
 | `skills/banana/references/post-processing.md` | ImageMagick/FFmpeg pipelines, green screen transparency, format conversion. |
+| `skills/video/SKILL.md` | Video Creative Director orchestrator (VEO 3.1). |
+| `skills/video/scripts/video_generate.py` | Async VEO API with polling, first/last frame, reference images. |
+| `skills/video/references/veo-models.md` | VEO model specs, pricing, rate limits, Replicate alternatives. |
+| `skills/video/references/video-prompt-engineering.md` | 5-Part Video Framework, templates, camera motion vocabulary. |
 | `agents/brief-constructor.md` | Subagent for prompt construction. |
 
 ## Scripts use stdlib only

@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-04-09
+
+### Added
+- **`/video` skill** -- New separate video generation skill powered by Google VEO 3.1
+  - `skills/video/SKILL.md` (~188 lines) -- Video Creative Director orchestrator
+  - `skills/video/scripts/video_generate.py` (~317 lines) -- Async VEO API with polling, first/last frame, reference images
+  - `skills/video/references/veo-models.md` -- VEO model specs, pricing ($0.15-0.40/sec), rate limits
+  - `skills/video/references/video-prompt-engineering.md` -- 5-Part Video Framework (Camera, Subject, Action, Setting, Style+Audio)
+  - Text-to-video, image-to-video, and first/last frame keyframe interpolation
+  - Same API key as image generation, same brand preset and asset registry
+  - Commands: generate, animate, sequence, extend, stitch, cost, status
+
+### Changed
+- Updated `cost_tracker.py` with VEO per-second pricing (duration-based keys)
+- Added cross-reference in banana SKILL.md pointing to `/video` skill
+
 ## [2.7.0] - 2026-04-09
 
 ### Added
@@ -347,6 +363,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Batch variations, multi-turn chat, prompt inspiration
 - Install script with validation
 
+[3.0.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v3.0.0
 [2.7.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v2.7.0
 [2.6.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v2.6.0
 [2.5.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v2.5.0

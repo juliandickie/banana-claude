@@ -37,6 +37,17 @@ PRICING = {
         "2K": 0.050,
         "4K": 0.050,
     },
+    # VEO video models (keyed by duration instead of resolution)
+    "veo-3.1-generate-preview": {
+        "4s": 0.600,
+        "6s": 0.900,
+        "8s": 1.200,
+    },
+    "veo-3.1-generate-lite-preview": {
+        "4s": 0.300,
+        "6s": 0.450,
+        "8s": 0.600,
+    },
 }
 
 # Batch API gets 50% discount

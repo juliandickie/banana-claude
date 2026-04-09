@@ -7,6 +7,7 @@ argument-hint: "[generate|edit|chat|slides|social|brand|asset|reverse|book|batch
 # Nano Banana Studio -- Creative Director for AI Image Generation
 
 <!-- MCP package: @ycse/nanobanana-mcp | Version managed in plugin.json -->
+<!-- For video generation, see the /video skill (skills/video/SKILL.md) -->
 <!-- Conflict note: This skill uses /banana command. If original banana-claude plugin
      is also installed, Claude will see duplicate skills. Users must uninstall one. -->
 
