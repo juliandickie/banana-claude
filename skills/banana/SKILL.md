@@ -42,6 +42,8 @@ argument-hint: "[generate|edit|chat|slides|social|brand|asset|reverse|book|batch
 | `/banana history [list\|show\|export\|sessions]` | View session generation history and export gallery |
 | `/banana ab-test <idea> [--count N]` | Generate Literal/Creative/Premium variations and track preferences |
 | `/banana deck --images DIR --output PATH` | Assemble slide images into editable .pptx with brand styling |
+| `/banana analytics [--format html\|json] [--days 30]` | Usage analytics dashboard (cost trends, domain usage, quota) |
+| `/banana content <idea> --outputs hero,social,email` | Multi-modal content pipeline from a single idea |
 
 ## Creative Director Pipeline
 
@@ -205,6 +207,23 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/deckbuilder.py build --images ~/slides/ --pr
 ```
 See `references/deck-builder.md` for layouts (fullbleed, standard, split) and preset integration.
 
+## /banana analytics
+
+Generate a self-contained HTML analytics dashboard with cost trends, model/domain usage, and quota monitoring.
+```bash
+python3 ${CLAUDE_SKILL_DIR}/scripts/analytics.py report --format html --output ~/analytics.html
+```
+See `references/analytics.md` for dashboard sections and data sources.
+
+## /banana content
+
+One idea → complete content package: hero image, social pack, email header, format variants.
+```bash
+python3 ${CLAUDE_SKILL_DIR}/scripts/content_pipeline.py plan --idea "product launch" --outputs hero,social,email,formats --preset NAME
+python3 ${CLAUDE_SKILL_DIR}/scripts/content_pipeline.py generate --plan PATH
+```
+See `references/content-pipeline.md` for output types, dependencies, and cost estimation.
+
 ## /banana formats
 
 Convert any generated image to multiple formats and sizes. Generate once, convert many times.
@@ -246,3 +265,5 @@ Load on-demand -- do NOT load all at startup:
 - `references/session-history.md` -- Session history tracking, gallery export
 - `references/ab-testing.md` -- A/B variation styles, rating system, preferences
 - `references/deck-builder.md` -- Deck assembly, layouts, preset integration, logo handling
+- `references/analytics.md` -- Analytics dashboard sections, data sources, chart types
+- `references/content-pipeline.md` -- Content pipeline output types, dependencies, cost estimation

@@ -10,7 +10,7 @@ AI image generation plugin for Claude Code where **Claude acts as Creative Direc
 Unlike simple API wrappers, Claude interprets your intent, selects domain expertise, constructs optimized prompts using Google's official 5-component formula, and orchestrates Gemini for the best possible results.
 
 [![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-blue)](https://claude.ai/claude-code)
-[![Version](https://img.shields.io/badge/version-2.5.0-coral)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.6.0-coral)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Origin](https://img.shields.io/badge/origin-AgriciDaniel%2Fbanana--claude-gray)](https://github.com/AgriciDaniel/banana-claude)
 
@@ -42,6 +42,9 @@ Unlike simple API wrappers, Claude interprets your intent, selects domain expert
 ## Features
 
 Built on [AgriciDaniel/banana-claude](https://github.com/AgriciDaniel/banana-claude), extended with features driven by production use and research analysis of Google's prompting guidance:
+
+### Analytics Dashboard (v2.6.0)
+Self-contained HTML dashboard with inline SVG charts showing cost trends, model/domain usage, resolution distribution, and quota monitoring. Aggregates data from cost tracker, session history, and A/B preferences. No external dependencies — opens in any browser.
 
 ### Deck Builder (v2.5.0)
 Assemble generated slide images into editable .pptx presentations with text layers, brand styling, and logo placement. Three layouts: fullbleed, standard, split. Reads generation-summary.json from `/banana slides` for slide notes with original prompts.
@@ -285,6 +288,7 @@ Claude will ask about your brand, select the right domain mode (Cinema, Product,
 | `/banana history [list\|show\|export\|sessions]` | View session generation history and export gallery |
 | `/banana ab-test <idea> [--count N]` | Generate Literal/Creative/Premium variations and track preferences |
 | `/banana deck --images DIR --output PATH` | Assemble slide images into editable .pptx with brand styling |
+| `/banana analytics [--format html\|json]` | Usage analytics dashboard (cost trends, domain usage, quota) |
 
 ## How It Works
 
@@ -466,6 +470,7 @@ nano-banana-studio/                    # Claude Code Plugin
 │   │   ├── post-processing.md        # ImageMagick/FFmpeg pipelines, green screen
 │   │   ├── cost-tracking.md          # Pricing table, usage guide
 │   │   ├── presets.md                # Brand Style Guide schema (17 fields)
+│   │   ├── analytics.md               # Analytics dashboard sections, data sources
 │   │   ├── deck-builder.md            # Deck assembly, layouts, preset integration
 │   │   ├── ab-testing.md              # A/B variation styles, rating, preferences
 │   │   ├── session-history.md         # Session history tracking and gallery export
@@ -490,6 +495,7 @@ nano-banana-studio/                    # Claude Code Plugin
 │       ├── slides.py                 # Slide deck batch generation pipeline
 │       ├── cost_tracker.py           # Cost logging and summaries
 │       ├── presets.py                # Brand Style Guide management
+│       ├── analytics.py                # Analytics dashboard (HTML with SVG charts)
 │       ├── deckbuilder.py              # Slide deck builder (.pptx with brand styling)
 │       ├── abtester.py                # A/B prompt variation tester with preference tracking
 │       ├── history.py                 # Session generation history and gallery export

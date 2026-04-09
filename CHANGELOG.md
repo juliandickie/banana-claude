@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2026-04-09
+
+### Added
+- **`/banana analytics`** -- Self-contained HTML analytics dashboard
+  - `scripts/analytics.py` (~490 lines) with inline SVG charts (no external JS)
+  - Cost timeline, model/domain breakdown, resolution distribution, quota gauge
+  - Aggregates data from cost tracker, session history, and A/B preferences
+  - `references/analytics.md` -- dashboard sections and data sources
+
 ## [2.5.0] - 2026-04-09
 
 ### Added
@@ -328,6 +337,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Batch variations, multi-turn chat, prompt inspiration
 - Install script with validation
 
+[2.6.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v2.6.0
 [2.5.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v2.5.0
 [2.4.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v2.4.0
 [2.3.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v2.3.0
