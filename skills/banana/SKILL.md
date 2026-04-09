@@ -40,6 +40,8 @@ argument-hint: "[generate|edit|chat|slides|social|brand|asset|reverse|book|batch
 | `/banana cost [summary\|today\|estimate]` | View cost tracking and estimates |
 | `/banana formats <path> [--formats] [--sizes]` | Convert image to multiple formats/sizes |
 | `/banana history [list\|show\|export\|sessions]` | View session generation history and export gallery |
+| `/banana ab-test <idea> [--count N]` | Generate Literal/Creative/Premium variations and track preferences |
+| `/banana deck --images DIR --output PATH` | Assemble slide images into editable .pptx with brand styling |
 
 ## Creative Director Pipeline
 
@@ -183,6 +185,26 @@ Generate a complete visual brand book from a preset in three formats. See `refer
 python3 ${CLAUDE_SKILL_DIR}/scripts/brandbook.py generate --preset NAME --output ~/brand-book/ --tier standard
 ```
 
+## /banana ab-test
+
+Generate Literal/Creative/Premium prompt variations from the same brief, then rate to track preferences.
+```bash
+python3 ${CLAUDE_SKILL_DIR}/scripts/abtester.py generate --idea "coffee shop hero" --count 3
+```
+After reviewing, prompt user to rate each variation (1-5). Log ratings with:
+```bash
+python3 ${CLAUDE_SKILL_DIR}/scripts/abtester.py rate --test-id ID --ratings "1:4,2:5,3:3"
+```
+See `references/ab-testing.md` for variation styles and preferences tracking.
+
+## /banana deck
+
+Assemble generated slide images into an editable .pptx with text layers and brand styling.
+```bash
+python3 ${CLAUDE_SKILL_DIR}/scripts/deckbuilder.py build --images ~/slides/ --preset NAME --output deck.pptx
+```
+See `references/deck-builder.md` for layouts (fullbleed, standard, split) and preset integration.
+
 ## /banana formats
 
 Convert any generated image to multiple formats and sizes. Generate once, convert many times.
@@ -222,3 +244,5 @@ Load on-demand -- do NOT load all at startup:
 - `references/setup.md` -- Guided API key configuration flow
 - `references/multi-format.md` -- Multi-format conversion (sizes, formats, ImageMagick)
 - `references/session-history.md` -- Session history tracking, gallery export
+- `references/ab-testing.md` -- A/B variation styles, rating system, preferences
+- `references/deck-builder.md` -- Deck assembly, layouts, preset integration, logo handling

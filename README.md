@@ -10,7 +10,7 @@ AI image generation plugin for Claude Code where **Claude acts as Creative Direc
 Unlike simple API wrappers, Claude interprets your intent, selects domain expertise, constructs optimized prompts using Google's official 5-component formula, and orchestrates Gemini for the best possible results.
 
 [![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-blue)](https://claude.ai/claude-code)
-[![Version](https://img.shields.io/badge/version-2.3.0-coral)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.4.0-coral)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Origin](https://img.shields.io/badge/origin-AgriciDaniel%2Fbanana--claude-gray)](https://github.com/AgriciDaniel/banana-claude)
 
@@ -42,6 +42,9 @@ Unlike simple API wrappers, Claude interprets your intent, selects domain expert
 ## Features
 
 Built on [AgriciDaniel/banana-claude](https://github.com/AgriciDaniel/banana-claude), extended with features driven by production use and research analysis of Google's prompting guidance:
+
+### Smart A/B Testing (v2.4.0)
+Generate Literal/Creative/Premium prompt variations from the same brief. Rate the results on a 1-5 scale, and preferences are tracked over time to learn which styles work best for you.
 
 ### Session History with Gallery Export (v2.3.0)
 Track all image generations per session. View history, show details for any entry, and export as a markdown gallery with inline images. Automatically logged after every generation.
@@ -277,6 +280,7 @@ Claude will ask about your brand, select the right domain mode (Cinema, Product,
 | `/banana cost [summary\|today\|estimate]` | View cost tracking and estimates |
 | `/banana formats <path> [--formats] [--sizes]` | Convert image to multiple formats/sizes |
 | `/banana history [list\|show\|export\|sessions]` | View session generation history and export gallery |
+| `/banana ab-test <idea> [--count N]` | Generate Literal/Creative/Premium variations and track preferences |
 
 ## How It Works
 
@@ -458,6 +462,7 @@ nano-banana-studio/                    # Claude Code Plugin
 │   │   ├── post-processing.md        # ImageMagick/FFmpeg pipelines, green screen
 │   │   ├── cost-tracking.md          # Pricing table, usage guide
 │   │   ├── presets.md                # Brand Style Guide schema (17 fields)
+│   │   ├── ab-testing.md              # A/B variation styles, rating, preferences
 │   │   ├── session-history.md         # Session history tracking and gallery export
 │   │   ├── multi-format.md           # Multi-format conversion (sizes, formats)
 │   │   └── setup.md                  # Guided API key configuration flow
@@ -480,6 +485,7 @@ nano-banana-studio/                    # Claude Code Plugin
 │       ├── slides.py                 # Slide deck batch generation pipeline
 │       ├── cost_tracker.py           # Cost logging and summaries
 │       ├── presets.py                # Brand Style Guide management
+│       ├── abtester.py                # A/B prompt variation tester with preference tracking
 │       ├── history.py                 # Session generation history and gallery export
 │       ├── multiformat.py             # Multi-format image converter (PNG/WebP/JPEG)
 │       └── batch.py                  # CSV batch workflow parser

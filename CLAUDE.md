@@ -63,6 +63,8 @@ This repo follows the official Claude Code plugin layout:
 | `skills/banana/scripts/pantone_lookup.py` | Color conversion: Hex → RGB → CMYK → nearest Pantone (156 colors). |
 | `skills/banana/scripts/assets.py` | Asset registry CRUD (list, show, create, delete, add-image). |
 | `skills/banana/scripts/presets.py` | Brand Style Guide CRUD (list, show, create, delete). |
+| `skills/banana/scripts/abtester.py` | A/B prompt variation tester with preference tracking. |
+| `skills/banana/references/ab-testing.md` | A/B variation styles, rating system, preferences. |
 | `skills/banana/scripts/history.py` | Session generation history (log, list, show, export, sessions). |
 | `skills/banana/references/session-history.md` | Session history tracking, gallery export, session ID management. |
 | `skills/banana/scripts/multiformat.py` | Multi-format image converter (PNG/WebP/JPEG at 4K/2K/1K/512). |

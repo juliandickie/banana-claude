@@ -2,7 +2,7 @@
 
 ## Context
 
-Nano Banana Studio v2.3.0 is a comprehensive Creative Director plugin for AI image generation. This roadmap captures planned features, organized by implementation priority.
+Nano Banana Studio v2.4.0 is a comprehensive Creative Director plugin for AI image generation. This roadmap captures planned features, organized by implementation priority.
 
 **Architecture note:** As this grows, the skill should split into three interlinked skills:
 1. **Brand Learning** (`/banana brand`) — Brand guide creation, asset registry, presets
@@ -26,6 +26,7 @@ These would share the brand preset system and asset registry but have their own 
 | 7 | `/banana book` — visual brand book generator | v2.0.0 | markdown + pptx + html, 3 tiers, Pantone colors |
 | 8 | `/banana formats` — multi-format image converter | v2.2.0 | PNG/WebP/JPEG at 4K/2K/1K/512, sips fallback |
 | 9 | `/banana history` — session generation history | v2.3.0 | log, list, export as markdown gallery |
+| 10 | `/banana ab-test` — A/B prompt variation testing | v2.4.0 | Literal/Creative/Premium + preference learning |
 
 ---
 
@@ -61,16 +62,6 @@ Generate slide backgrounds AND produce an actual editable `.pptx` file with:
 - Logo placed per brand guide
 - Notes section with prompts used
 
-### Smart A/B Testing with Prompt Variations
-
-Expand Literal/Creative/Premium variations into a feedback framework:
-
-```
-/banana ab-test "landing page hero for fintech app" --count 3
-```
-
-Generate all three, display with prompts, let user rate. Over time, learn which patterns work best.
-
 ### Analytics Dashboard
 
 Local web dashboard showing cost trends, domain mode usage, quota monitoring.
@@ -100,6 +91,5 @@ Local web dashboard showing cost trends, domain mode usage, quota monitoring.
 |---|---------|--------|--------|--------|
 | 1 | `/banana video` with VEO 3.1 | Medium | Very High | Next |
 | 2 | Deck builder (.pptx output) | Medium | Very High | Planned |
-| 3 | A/B testing with prompt variations | Low | Medium | Planned |
-| 4 | Analytics dashboard | Medium | Medium | Planned |
-| 5 | Multi-modal content pipeline | High | High | Planned |
+| 3 | Analytics dashboard | Medium | Medium | Planned |
+| 4 | Multi-modal content pipeline | High | High | Planned |

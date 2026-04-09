@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-04-09
+
+### Added
+- **`/banana ab-test`** -- Smart A/B testing with Literal/Creative/Premium prompt variations
+  - `scripts/abtester.py` (~340 lines) generates variations, tracks ratings and preferences
+  - Rating system (1-5 scale) with aggregate preference learning
+  - Commands: generate, rate, preferences, history
+  - `references/ab-testing.md` -- variation styles, rating system, preferences tracking
+
 ## [2.3.0] - 2026-04-09
 
 ### Added
@@ -309,6 +318,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Batch variations, multi-turn chat, prompt inspiration
 - Install script with validation
 
+[2.4.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v2.4.0
 [2.3.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v2.3.0
 [2.2.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v2.2.0
 [2.1.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v2.1.0
