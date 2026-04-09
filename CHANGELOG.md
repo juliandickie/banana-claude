@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-04-09
+
+### Fixed
+- **SKILL.md frontmatter** -- removed unrecognized `metadata` block (version/author belong in plugin.json)
+- **SKILL.md argument-hint** -- expanded from 7 to 16 subcommands so all commands appear in autocomplete
+- **SKILL.md pipeline flow** -- renumbered fractional steps (1, 1.5, 1.6) to sequential 1-11; moved feature sections (reverse, social, brand) after pipeline to restore uninterrupted flow
+- **SKILL.md MANDATORY section** -- removed contradictory "read before every call" that conflicted with on-demand loading strategy
+- **SKILL.md duplicate Response Format** -- removed standalone section already covered by Step 11
+- **SKILL.md error table** -- added HTTP 5xx and invalid API key error rows
+- **SKILL.md `/banana inspire`** -- added missing implementation guidance pointing to Proven Prompt Templates
+- **marketplace.json** -- updated owner/homepage/repository URLs to match fork (juliandickie)
+- **brief-constructor agent** -- fixed fragile relative paths, reduced maxTurns from 5 to 3
+- **CLAUDE.md** -- updated version checklist from 4 files to 3 (SKILL.md no longer carries version)
+
 ## [2.0.0] - 2026-04-09
 
 ### Added
@@ -263,6 +277,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Batch variations, multi-turn chat, prompt inspiration
 - Install script with validation
 
+[2.0.1]: https://github.com/juliandickie/banana-claude/releases/tag/v2.0.1
 [2.0.0]: https://github.com/juliandickie/banana-claude/releases/tag/v2.0.0
 [1.9.1]: https://github.com/juliandickie/banana-claude/releases/tag/v1.9.1
 [1.9.0]: https://github.com/juliandickie/banana-claude/releases/tag/v1.9.0

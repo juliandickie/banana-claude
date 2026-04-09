@@ -1,20 +1,12 @@
 ---
 name: banana
 description: "Use when ANY request involves image creation, editing, visual asset production, slide generation, or creative direction. Triggers on: generate an image, create a photo, edit this picture, design a logo, make a banner, slide deck, social media visuals, and all /banana commands."
-argument-hint: "[generate|edit|chat|slides|inspire|batch|setup] <idea, path, or command>"
-metadata:
-  version: "2.0.0"
-  author: juliandickie
-  mcp-package: "@ycse/nanobanana-mcp"
+argument-hint: "[generate|edit|chat|slides|social|brand|asset|reverse|book|batch|inspire|preset|cost|setup|status|update] <idea, path, or command>"
 ---
 
 # Banana Claude -- Creative Director for AI Image Generation
 
-## MANDATORY -- Read before every generation
-
-Before constructing ANY prompt or calling ANY tool, read:
-1. `references/gemini-models.md` -- model selection and parameters
-2. `references/prompt-engineering.md` -- prompt construction rules
+<!-- MCP package: @ycse/nanobanana-mcp | Version managed in plugin.json -->
 
 ## Core Principles
 
@@ -53,7 +45,7 @@ Follow this for every generation -- no exceptions:
 
 Gather the 5-Input Creative Brief: **Purpose** (where used?), **Audience** (who for?), **Subject** (what?), **Brand** (what vibe?), **References** (visual examples?). If vague, ASK. See `references/prompt-engineering.md` → 5-Input System.
 
-### Step 1.5: Check for Presets
+### Step 2: Check for Presets
 
 If user mentions a brand/preset: `python3 ${CLAUDE_SKILL_DIR}/scripts/presets.py list`. Load with `show NAME`. Preset values are defaults -- user instructions override. See `references/presets.md` for Brand Style Guide fields.
 
@@ -61,35 +53,18 @@ If user mentions a brand/preset: `python3 ${CLAUDE_SKILL_DIR}/scripts/presets.py
 
 **Example presets:** If no presets exist, offer to install examples: `ls ${CLAUDE_SKILL_DIR}/presets/` shows 12 pre-built brand guides. Copy with: `cp ${CLAUDE_SKILL_DIR}/presets/NAME.json ~/.banana/presets/`
 
-### Step 1.6: Check for Assets
+### Step 3: Check for Assets
 
 If user mentions a named character, product, or object, check assets:
 `python3 ${CLAUDE_SKILL_DIR}/scripts/assets.py list`. Load with `show NAME`.
 Pass `reference_images[]` as inlineData parts in the API call. Append
 `consistency_notes` to the prompt. See `references/asset-registry.md`.
 
-## Reverse Prompt Engineering (`/banana reverse`)
-
-Analyze an image and extract the prompt that would recreate it. Load `references/reverse-prompt.md` and follow its instructions. Decompose the image using the 5-Component Formula (Subject, Action, Location, Composition, Style), estimate camera/lens/lighting, and output a complete reconstructed prompt ready to use.
-
-## Social Media Generation (`/banana social`)
-
-Generate platform-native images at the correct ratio and max resolution for each platform. See `references/social-platforms.md` for all 47 platforms with specs. Use the script for batch generation:
-```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/social.py generate --prompt "..." --platforms ig-feed,yt-thumb,li-feed
-python3 ${CLAUDE_SKILL_DIR}/scripts/social.py list   # show all 47 platforms
-```
-Generates at 4K, auto-crops to exact platform pixel specs. Saves both original + cropped.
-
-## Brand Builder (`/banana brand`)
-
-See `references/brand-builder.md` for the guided brand creation flow. Load that reference when user runs `/banana brand` and follow its 4-phase instructions: gather sources → auto-extract → refine → preview and save.
-
-### Step 2: Select Domain Mode
+### Step 4: Select Domain Mode
 
 Choose from: **Cinema**, **Product**, **Portrait**, **Editorial**, **UI/Web**, **Logo**, **Landscape**, **Abstract**, **Infographic**, **Presentation (Complete)**, **Presentation (Background)**. See `references/prompt-engineering.md` → Domain Mode Modifier Libraries.
 
-### Step 3: Construct Prompt
+### Step 5: Construct Prompt
 
 Use the **5-Component Formula**: Subject → Action → Location/Context → Composition → Style (includes lighting). Write as natural narrative prose, NEVER keyword lists. See `references/prompt-engineering.md` → Proven Prompt Templates.
 
@@ -97,11 +72,11 @@ Use the **5-Component Formula**: Subject → Action → Location/Context → Com
 
 For batch/exploratory requests, offer **Literal/Creative/Premium** prompt variations.
 
-### Step 4: Set Aspect Ratio + Resolution
+### Step 6: Set Aspect Ratio + Resolution
 
 Call `set_aspect_ratio` BEFORE generating. Match ratio to use case. Default: `2K`. Presentation: `16:9`, `4K`. See `references/gemini-models.md` → Aspect Ratios + Resolution Tiers.
 
-### Step 5: Call the MCP
+### Step 7: Call the MCP
 
 | Tool | When |
 |------|------|
@@ -115,27 +90,29 @@ Call `set_aspect_ratio` BEFORE generating. Match ratio to use case. Default: `2K
 2. Replicate API: `python3 ${CLAUDE_SKILL_DIR}/scripts/replicate_generate.py --prompt "..."`
 For editing: use `edit.py` or `replicate_edit.py` respectively.
 
-### Step 6: Post-Processing
+### Step 8: Post-Processing
 
 If needed, use ImageMagick for cropping, format conversion, background removal. See `references/post-processing.md`. Check tool availability first: `which magick || which convert`.
 
-### Step 7: Handle Errors
+### Step 9: Handle Errors
 
 | Error | Action |
 |-------|--------|
 | `IMAGE_SAFETY` | Rephrase prompt (see `references/prompt-engineering.md` → Safety Rephrase). Max 3 attempts with user approval. |
 | HTTP 429 | Wait 2s, exponential backoff, max 3 retries |
 | HTTP 400 FAILED_PRECONDITION | Billing not enabled -- inform user |
-| MCP unavailable | Use fallback chain (Step 5) |
+| HTTP 5xx | Server error -- wait 5s, retry with backoff, max 3 retries. Common during model rollouts. |
+| Invalid API key | Inform user, suggest running `/banana setup` to reconfigure |
+| MCP unavailable | Use fallback chain (Step 7) |
 | Vague request | Ask clarifying questions |
 
-### Step 8: Log Cost
+### Step 10: Log Cost
 
 ```bash
 python3 ${CLAUDE_SKILL_DIR}/scripts/cost_tracker.py log --model MODEL --resolution RES --prompt "brief"
 ```
 
-### Step 9: Return Results
+### Step 11: Return Results
 
 Always provide: **image path**, **crafted prompt** (educational), **settings** (model, ratio), **suggestions** (1-2 refinements).
 
@@ -178,13 +155,32 @@ Default: 16:9, 4K. Use `--mode background` or `--mode complete`.
 
 Default: `gemini-3.1-flash-image-preview`. See `references/gemini-models.md` for full specs.
 
-## Response Format
+## /banana reverse
 
-After generating, always provide:
-1. **The image path** -- where it was saved
-2. **The crafted prompt** -- show the user what you sent
-3. **Settings used** -- model, aspect ratio, resolution
-4. **Suggestions** -- 1-2 refinement ideas
+Analyze an image and extract the prompt that would recreate it. See `references/reverse-prompt.md` for the full 5-Component decomposition methodology.
+
+## /banana social
+
+Generate platform-native images at correct ratios for 47 platforms. See `references/social-platforms.md` for specs. Script: `python3 ${CLAUDE_SKILL_DIR}/scripts/social.py generate --prompt "..." --platforms ig-feed,yt-thumb`
+
+## /banana brand
+
+Guided brand creation: gather sources → auto-extract → refine → preview → save. See `references/brand-builder.md`.
+
+## /banana inspire
+
+Browse prompt ideas by category. Load `references/prompt-engineering.md` → Proven Prompt Templates section. Present 3-5 templates from the requested category (or random if none specified). Show the template prompt and suggest how to customize it.
+
+## /banana book
+
+Generate a complete visual brand book from a preset in three formats. See `references/brand-book.md` for tier details and options.
+```bash
+python3 ${CLAUDE_SKILL_DIR}/scripts/brandbook.py generate --preset NAME --output ~/brand-book/ --tier standard
+```
+
+## Setup, Status & Update
+
+See `references/setup.md` for guided flows. When user runs `/banana setup`, `/banana status`, or `/banana update`, load that reference and follow its instructions.
 
 ## Reference Documentation
 
@@ -202,15 +198,3 @@ Load on-demand -- do NOT load all at startup:
 - `references/reverse-prompt.md` -- Image analysis → 5-Component Formula prompt extraction
 - `references/brand-book.md` -- Brand book generator (tiers, formats, color specs)
 - `references/setup.md` -- Guided API key configuration flow
-
-## Brand Book Generator (`/banana book`)
-
-Generate a complete visual brand book from a preset in three formats. See `references/brand-book.md` for tier details and options.
-```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/brandbook.py generate --preset NAME --output ~/brand-book/ --tier standard
-```
-Outputs: `brand-book.md` + `brand-book.pptx` + `brand-book.html` + `images/` folder.
-
-## Setup, Status & Update
-
-See `references/setup.md` for guided flows. When user runs `/banana setup`, `/banana status`, or `/banana update`, load that reference and follow its instructions.

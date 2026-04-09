@@ -112,16 +112,16 @@ Test locally: `claude --plugin-dir .` or standalone: `bash install.sh`
 **MANDATORY: After completing ANY feature or significant change, run through this
 entire checklist before committing.** Do not skip items. Do not batch them for later.
 
-### 1. Version Bump (ALL 4 files)
+### 1. Version Bump (ALL 3 files)
 
 | File | What to update |
 |------|---------------|
 | `.claude-plugin/plugin.json` | `"version"` field |
-| `skills/banana/SKILL.md` | `metadata.version` in YAML frontmatter |
 | `README.md` | Version badge number in shields.io URL |
 | `CITATION.cff` | `version` field + `date-released` to today |
 
 Do NOT set version in `marketplace.json` -- it conflicts with `plugin.json`.
+SKILL.md no longer carries version -- `plugin.json` is the authoritative source.
 
 ### 2. Documentation Updates
 
@@ -168,7 +168,7 @@ If the lists don't match, update the diagram.
 ### 6. Cross-File Consistency Check (versions, models, ratios)
 
 After all edits, verify these match across files:
-- **Version number** identical in all 4 version files
+- **Version number** identical in all 3 version files (plugin.json, README.md badge, CITATION.cff)
 - **File list** in CLAUDE.md file responsibilities table matches what exists on disk
 - **Model names** and **rate limits** consistent across gemini-models.md, cost-tracking.md, mcp-tools.md
 - **Aspect ratios** consistent across gemini-models.md, replicate.md, generate.py, replicate_generate.py

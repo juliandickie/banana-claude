@@ -8,7 +8,7 @@
 
 - **Repo:** https://github.com/juliandickie/banana-claude
 - **Upstream:** https://github.com/AgriciDaniel/banana-claude (forked at v1.4.1)
-- **Current version:** 2.0.0
+- **Current version:** 2.0.1
 - **Local path:** `/Users/juliandickie/code/nano-banana-pro/banana-claude/`
 - **Plugin layout:** `.claude-plugin/` + `skills/banana/` + `agents/`
 
@@ -103,11 +103,30 @@ Both keys stored in `~/.banana/config.json`. Scripts check: CLI flag → env var
    - Extracted setup instructions to `references/setup.md`
    - Removed duplicated tables (domain modes, aspect ratios, resolutions)
    - 330 lines of headroom for future features
-6. Version bumped to v1.6.0 across all 4 files
+6. Version bumped to v1.6.0 across all files
 7. Updated all docs (README, CHANGELOG, PROGRESS, ROADMAP)
 
 **Files created:** slides.py, references/setup.md
 **Files modified:** SKILL.md (major rewrite), prompt-engineering.md, README.md, CHANGELOG.md, plugin.json, CITATION.cff, PROGRESS.md, ROADMAP.md
+
+### Session 4 (2026-04-09)
+**Scope:** Plugin audit + structural fixes (v2.0.1)
+
+1. Ran full plugin audit (plugin-validator + skill-reviewer agents)
+2. Removed unrecognized `metadata` block from SKILL.md frontmatter (version/author belong in plugin.json)
+3. Expanded argument-hint from 7 to 16 subcommands
+4. Removed MANDATORY section that contradicted on-demand loading
+5. Renumbered pipeline from fractional (1, 1.5, 1.6) to sequential (1-11)
+6. Moved feature sections (reverse, social, brand) after pipeline to restore flow
+7. Removed duplicate Response Format section
+8. Added HTTP 5xx and invalid API key to error table
+9. Added `/banana inspire` implementation guidance
+10. Fixed marketplace.json author/URLs to match fork
+11. Fixed brief-constructor agent paths, reduced maxTurns 5→3
+12. Updated CLAUDE.md version checklist (4→3 files, SKILL.md no longer carries version)
+13. Version bumped to v2.0.1 across 3 files
+
+**Files modified:** SKILL.md, agents/brief-constructor.md, marketplace.json, CLAUDE.md, plugin.json, README.md, CITATION.cff, CHANGELOG.md, PROGRESS.md
 
 ## Expansion Roadmap
 

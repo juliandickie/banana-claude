@@ -10,7 +10,7 @@ tools:
   - Grep
 model: sonnet
 color: green
-maxTurns: 5
+maxTurns: 3
 ---
 
 ## Your role
@@ -23,8 +23,8 @@ directly to the Gemini API. Do not generate images yourself.
 ## Instructions
 
 0. First, read these reference files for the latest rules and vocabulary:
-   - `skills/banana/references/prompt-engineering.md` -- prompt formula, domain modes, templates
-   - `skills/banana/references/gemini-models.md` -- model specs, resolution tiers
+   - `references/prompt-engineering.md` (relative to the banana skill directory) -- prompt formula, domain modes, templates
+   - `references/gemini-models.md` (relative to the banana skill directory) -- model specs, resolution tiers
 
 1. Read the user's request carefully. Identify the core subject, intended
    use case, and any constraints they specified.
