@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2026-04-09
+
+### Added
+- **`/video extend`** -- Extend a clip by chaining: extract last frame, generate next clip, concatenate. +7s per hop, max 148s
+  - `scripts/video_extend.py` -- automated multi-hop extension with progress tracking
+- **`/video stitch`** -- FFmpeg video toolkit: concat, trim, convert, info
+  - `scripts/video_stitch.py` -- concat multiple clips, trim to duration, convert formats, get video info
+
 ## [3.3.0] - 2026-04-09
 
 ### Added
@@ -389,6 +397,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Batch variations, multi-turn chat, prompt inspiration
 - Install script with validation
 
+[3.4.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v3.4.0
 [3.3.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v3.3.0
 [3.2.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v3.2.0
 [3.1.0]: https://github.com/juliandickie/nano-banana-studio/releases/tag/v3.1.0

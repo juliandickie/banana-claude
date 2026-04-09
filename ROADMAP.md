@@ -2,7 +2,7 @@
 
 ## Context
 
-Nano Banana Studio v3.3.0 is a comprehensive Creative Director plugin for AI image generation. This roadmap captures planned features, organized by implementation priority.
+Nano Banana Studio v3.4.0 is a comprehensive Creative Director plugin for AI image generation. This roadmap captures planned features, organized by implementation priority.
 
 **Architecture note:** As this grows, the skill should split into three interlinked skills:
 1. **Brand Learning** (`/banana brand`) — Brand guide creation, asset registry, presets
@@ -32,6 +32,7 @@ These would share the brand preset system and asset registry but have their own 
 | 13 | `/banana content` — multi-modal content pipeline | v2.7.0 | hero + social + email + formats orchestration |
 | 14 | `/video` — VEO 3.1 video generation (core) | v3.0.0 | Text-to-video, image-to-video, first/last frame |
 | 15 | `/video sequence` — multi-shot production | v3.3.0 | Storyboard approval, first/last frame chaining |
+| 16 | `/video extend` + `/video stitch` — extension + FFmpeg toolkit | v3.4.0 | Clip chaining to 148s, concat/trim/convert |
 
 ---
 
@@ -76,5 +77,4 @@ Implementation: `video_generate.py` (stdlib-only, same pattern), `/banana video`
 
 | # | Feature | Effort | Impact | Status |
 |---|---------|--------|--------|--------|
-| 1 | `/video` sequence production (storyboard, multi-shot) | Medium | Very High | Next |
-| 2 | `/video extend` + `/video stitch` | Low | Medium | Planned |
+| 1 | Replicate video model routing (Kling, Wan, PixVerse) | Medium | High | Future |
