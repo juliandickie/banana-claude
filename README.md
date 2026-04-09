@@ -436,7 +436,7 @@ banana-claude/                         # Claude Code Plugin
 │   ├── plugin.json                    # Plugin manifest
 │   └── marketplace.json               # Marketplace catalog
 ├── skills/banana/                     # Main skill
-│   ├── SKILL.md                       # Creative Director orchestrator (v2.0)
+│   ├── SKILL.md                       # Creative Director orchestrator (~200 lines)
 │   ├── references/
 │   │   ├── prompt-engineering.md      # 5-component formula, 11 domain modes, PEEL strategy
 │   │   ├── gemini-models.md           # Model specs, resolution tables, input limits

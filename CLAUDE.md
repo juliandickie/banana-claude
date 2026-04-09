@@ -186,7 +186,7 @@ If any new Python scripts were created:
 wc -l skills/banana/SKILL.md  # Must stay under 500 lines
 ```
 
-Current: ~172 lines (lean orchestrator pattern). If approaching 300+, extract to reference files.
+Current: ~200 lines (lean orchestrator pattern). If approaching 300+, extract to reference files.
 
 ### 9. Memory File
 
