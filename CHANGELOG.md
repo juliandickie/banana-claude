@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.5.0] - 2026-04-10
 
+### ⚠️ Backend Reality Check
+
+Real-API verification during the v3.5.0 release surfaced a critical distinction: **VEO 3.1 is split across two backends**. The plugin uses the Gemini API (`generativelanguage.googleapis.com`, API-key auth), while Lite, Legacy 3.0, GA `-001` IDs for Standard/Fast, and Scene Extension v2 (`--video-input`) are **Vertex AI only** (`*-aiplatform.googleapis.com`, OAuth/service-account auth). The Gemini API returns HTTP 404 for every `-001` ID and rejects `--video-input` with "inlineData isn't supported by this model." Until the Vertex AI backend ships in v3.6.0, the plugin gates these features with clear error messages and remaps `--quality-tier draft` to Fast instead of Lite. See `skills/video/references/veo-models.md` → Backend Availability for full details. Vertex AI support is now tracked as the top v3.6.0 roadmap item.
+
 ### Fixed
-- **VEO Lite model ID** — the plugin previously shipped `veo-3.1-generate-lite-preview` which does not exist as a real API endpoint; Lite generation had never actually worked. v3.5.0 ships the correct GA ID `veo-3.1-lite-generate-001`.
+- **VEO Lite model ID** — the plugin previously shipped `veo-3.1-generate-lite-preview` which does not exist as a real API endpoint. v3.5.0 ships the correct GA ID `veo-3.1-lite-generate-001` for users running against Vertex AI directly, and documents it for the Gemini API path with a clear error pointing at the v3.6.0 Vertex AI backend.
 - **VEO pricing** — the cost tracker's Standard rate was incorrectly set to $0.15/sec. Corrected to the official $0.40/sec ($3.20 per 8s clip) matching Google Cloud Vertex AI pricing. Fast ($0.15/sec) and Lite ($0.05/sec) tiers are now listed separately rather than conflated.
 
 ### Added
@@ -17,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`--negative-prompt`** flag on `video_generate.py` with Google's official guidance (describe what you want; use negatives only for known failure modes).
 - **`--seed`** flag on `video_generate.py` for reproducible generations.
 - **`--video-input`** flag on `video_generate.py` — Scene Extension v2 mode, mutually exclusive with image inputs, forces 720p.
-- **`--quality-tier {draft,fast,standard,legacy}`** flag on `video_sequence.py generate` and `estimate` — enables the draft-then-final workflow where a 4-shot sequence renders at Lite for $1.60 before final at Standard.
+- **`--quality-tier {draft,fast,standard,lite,legacy}`** flag on `video_sequence.py generate` and `estimate` — enables the draft-then-final workflow. `draft` currently maps to Fast ($0.15/sec, 2.7× cheaper than Standard) on the Gemini API; `lite` and `legacy` fail fast with a clear pointer to the v3.6.0 Vertex AI backend. A 4-shot 30-second sequence costs $4.80 at Fast draft vs $12.80 at Standard.
 - **Per-shot and sequence-level `model`/`resolution` fields** in the plan.json schema, with a 3-level cascade (CLI override → shot → plan → default) and graceful fallback for old plans.
 - **`--method {video,keyframe}`** flag on `video_extend.py`. Default is `video` (Scene Extension v2: passes previous clip directly, preserves audio continuity at 720p). `keyframe` retains the legacy last-frame extraction path at any resolution.
 - **`--model` flag on `video_extend.py`** with per-hop cost estimation using the selected model's actual rate.
@@ -27,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **README: "VEO 3.1 Model Variants & Draft Workflow (v3.5.0)"** section.
 
 ### Changed
-- **Scene Extension v2 is now the default** for `video_extend.py`. The legacy keyframe extension path is available as `--method keyframe`.
+- **`video_extend.py` default method** is `keyframe` (last-frame extraction, works on the Gemini API today at any resolution). `--method video` (Scene Extension v2, preserves audio continuity) is documented but errors with a clear Vertex-AI-required message until v3.6.0.
 - **`video_sequence.py` cost estimation** now uses real per-tier rates instead of a flat $1.20/clip. Output includes a per-model breakdown.
 - **Video SKILL.md Model Routing table** rewritten with 5 scenarios (draft / quick social / standard / hero / legacy) and a draft-first recommendation.
 

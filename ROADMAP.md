@@ -49,7 +49,45 @@ hash tracking, audio strategy split, etc.) originally slated for v3.5.0
 are **deferred to v3.6.0** — the coffee shop demo surfaced the model
 variant gap as a higher-priority blocker, so that work landed first.
 
-### v3.6.0 — Deferred Sequence Production + Batch Features
+### v3.6.0 — Vertex AI Backend + Deferred Sequence Features
+
+**🔴 Top priority: Vertex AI backend for VEO.** Real-API verification
+during v3.5.0 release surfaced that VEO 3.1's Lite tier
+(`veo-3.1-lite-generate-001`), Legacy 3.0, GA `-001` IDs for Standard
+and Fast, and Scene Extension v2 (`--video-input`) are all served only
+via Vertex AI (`*-aiplatform.googleapis.com`), not the Gemini API
+(`generativelanguage.googleapis.com`) the plugin currently uses. The
+Gemini API returns HTTP 404 for every `-001` ID and rejects the video
+`inlineData` part for `--video-input`. v3.5.0 ships these features
+documented and gated with clear error messages, but they need a real
+backend to become callable.
+
+**Scope of the Vertex AI backend work:**
+
+- **Auth path:** OAuth via Application Default Credentials (ADC) or a
+  service account JSON. This requires `google-auth` as a dependency,
+  which contradicts the script's stdlib-only posture. Options: (a)
+  accept `google-auth` as a narrow video-only dependency with
+  clear gate-on-import handling, (b) implement OAuth2 token refresh
+  manually against Google's token endpoint using stdlib `urllib`
+  (harder, but preserves the zero-dependency property), (c) shell out
+  to `gcloud auth print-access-token` if installed and fall back.
+- **Endpoint:** `https://{region}-aiplatform.googleapis.com/v1/projects/{project}/locations/{region}/publishers/google/models/{model}:predictLongRunning`
+  — different from the Gemini API pattern, requires a project ID and
+  a region.
+- **Request shape:** slightly different from Gemini API. Image parts
+  use `bytesBase64Encoded` instead of `inlineData.data` (this is the
+  same landmine v3.4.1 fixed in the other direction).
+- **Config:** add `vertex_project_id` and `vertex_region` to
+  `~/.banana/config.json`. Prompt for them in `/banana setup` when
+  the user opts into Vertex.
+- **Backend selection:** new `--backend {gemini-api,vertex-ai,auto}`
+  flag on `video_generate.py`. `auto` picks Vertex when the model ID
+  is in `MODELS_VERTEX_ONLY`, otherwise stays on the Gemini API.
+- **Once shipped:** remove the gates in `video_generate.py`, re-point
+  `--quality-tier draft` back to Lite (from its current Fast fallback),
+  and update the draft-then-final workflow tables in
+  `video-sequences.md` to show the full 15× cost reduction.
 
 **Carry-over from v3.5.0 plan (original sequence production scope):**
 
@@ -175,6 +213,7 @@ These worked well and should be documented in the video-sequences reference so f
 
 | # | Feature | Effort | Impact | Status |
 |---|---------|--------|--------|--------|
-| 1 | v3.5.0 — VEO 3.1 model variants + draft workflow + Scene Extension v2 | Medium | Very High | **Shipped 2026-04-10** |
-| 2 | v3.6.0 — Deferred sequence production improvements + batch/parallel features | Medium | Very High | **Next** |
-| 3 | Replicate video model routing (Kling, Wan, PixVerse) for character consistency | Medium | High | Future |
+| 1 | v3.5.0 — VEO 3.1 model variants + draft workflow + pricing fixes | Medium | Very High | **Shipped 2026-04-10** |
+| 2 | v3.6.0 — Vertex AI backend (unblocks Lite, Scene Extension v2, GA `-001` IDs) | Large | Very High | **Next** |
+| 3 | v3.6.0 — Deferred sequence production improvements + batch/parallel features | Medium | High | Next (alongside Vertex) |
+| 4 | Replicate video model routing (Kling, Wan, PixVerse) for character consistency | Medium | High | Future |

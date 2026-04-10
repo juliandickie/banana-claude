@@ -212,12 +212,15 @@ def main():
         ),
     )
     parser.add_argument(
-        "--method", choices=["video", "keyframe"], default="video",
+        "--method", choices=["video", "keyframe"], default="keyframe",
         help=(
-            "Extension method. 'video' uses Scene Extension v2 (passes the "
-            "previous clip as --video-input, preserves audio continuity, "
-            "forced to 720p). 'keyframe' uses the legacy last-frame extraction "
-            "path (any resolution, loses audio continuity)."
+            "Extension method. 'keyframe' (default) uses the last-frame "
+            "extraction path — works on the Gemini API today at any "
+            "resolution but loses audio continuity at the seam. 'video' "
+            "uses Scene Extension v2 (passes the previous clip as "
+            "--video-input, preserves audio continuity, forced to 720p) "
+            "BUT requires Vertex AI, which this plugin does not yet "
+            "support — tracked as a v3.6.0 roadmap item."
         ),
     )
     args = parser.parse_args()

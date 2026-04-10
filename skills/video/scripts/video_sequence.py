@@ -40,14 +40,24 @@ MAX_SHOT_DURATION = 8
 DEFAULT_SEQUENCE_MODEL = "veo-3.1-generate-preview"
 DEFAULT_SEQUENCE_RESOLUTION = "1080p"
 
-# Quality-tier CLI flag maps to concrete model IDs. Preview IDs are used for
-# Standard/Fast because those are the ones most thoroughly exercised in v3.5.x;
-# switch to GA (-001) in v3.6.0 once they're proven in production workflows.
+# Quality-tier CLI flag maps to concrete model IDs.
+#
+# Note: Lite (`veo-3.1-lite-generate-001`) and Legacy 3.0 are Vertex-AI
+# only as of 2026-04-10. Until the Vertex AI backend ships (v3.6.0),
+# `draft` maps to Fast — which is still an 8x discount vs Standard
+# ($0.15/sec vs $0.40/sec) and preserves the draft-then-final value
+# proposition even without true Lite access. Once the Vertex AI backend
+# lands, `draft` should be re-pointed at Lite for the full ~15x cost
+# reduction.
 QUALITY_TIER_MODELS = {
-    "draft": "veo-3.1-lite-generate-001",
+    "draft": "veo-3.1-fast-generate-preview",      # Vertex-AI-free fallback
     "fast": "veo-3.1-fast-generate-preview",
     "standard": "veo-3.1-generate-preview",
-    "legacy": "veo-3.0-generate-001",
+    # Legacy + real Lite are gated in video_generate.py and will fail
+    # fast with a clear message; keeping them here lets Vertex-enabled
+    # users opt in when the backend ships.
+    "lite": "veo-3.1-lite-generate-001",           # Vertex AI only
+    "legacy": "veo-3.0-generate-001",              # Vertex AI only
 }
 
 # Fallback per-second rates matching cost_tracker.PRICING. Kept in sync by
@@ -666,7 +676,7 @@ def main():
     p_est = subparsers.add_parser("estimate", help="Print cost estimate from plan")
     p_est.add_argument("--plan", required=True, help="Path to shot-list.json")
     p_est.add_argument(
-        "--quality-tier", choices=list(QUALITY_TIER_MODELS.keys()),
+        "--quality-tier", choices=["draft", "fast", "standard", "lite", "legacy"],
         default=None,
         help="Override model for all shots (draft|fast|standard|legacy)",
     )
@@ -681,13 +691,15 @@ def main():
     p_gen.add_argument("--api-key", default=None, help="Google AI API key")
     p_gen.add_argument("--output", default=None, help="Output directory for clips")
     p_gen.add_argument(
-        "--quality-tier", choices=list(QUALITY_TIER_MODELS.keys()),
+        "--quality-tier", choices=["draft", "fast", "standard", "lite", "legacy"],
         default=None,
         help=(
-            "Override model for all shots. 'draft' uses Lite (cheapest) for "
-            "first-pass review; 'standard' uses the flagship Standard tier "
-            "for final renders. See references/video-sequences.md for the "
-            "draft-then-final workflow."
+            "Override model for all shots. 'draft' currently maps to Fast "
+            "($0.15/sec, 2.7x cheaper than Standard) as the draft-then-final "
+            "pass. 'standard' uses the flagship Standard tier for final "
+            "renders. 'lite' and 'legacy' are Vertex-AI-only and will fail "
+            "with a clear message until the v3.6.0 backend ships. See "
+            "references/video-sequences.md for the draft-then-final workflow."
         ),
     )
 

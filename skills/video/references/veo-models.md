@@ -3,6 +3,28 @@
 > Load this when selecting a model for video generation or when the user
 > asks about VEO capabilities, pricing, rate limits, or known limitations.
 
+## ⚠️ Backend Availability (as of 2026-04-10)
+
+VEO 3.1 is served via two different Google API backends with **different
+model coverage**:
+
+| Backend | Auth | Plugin support | Available models |
+|---|---|---|---|
+| **Gemini API** (`generativelanguage.googleapis.com`) | API key | ✅ Shipped since v3.0.0 | Standard preview (`veo-3.1-generate-preview`), Fast preview (`veo-3.1-fast-generate-preview`) |
+| **Vertex AI** (`*-aiplatform.googleapis.com`) | OAuth / service account | ❌ **Not yet** — tracked as v3.6.0 ROADMAP item | All of the above **plus** Lite (`veo-3.1-lite-generate-001`), Legacy 3.0 (`veo-3.0-generate-001`), GA `-001` IDs for Standard/Fast, and Scene Extension v2 (`--video-input`) |
+
+**What this means in practice:**
+
+- **Standard and Fast preview IDs work today** through the plugin's existing API key path.
+- **Lite, Legacy, GA `-001` IDs, and `--video-input`** are documented here for completeness and will be callable through the plugin **once the Vertex AI backend ships in v3.6.0**. Requesting them today returns a clear error pointing at this limitation.
+- **`--quality-tier draft` currently maps to Fast** (`$0.15/sec`, 2.7× cheaper than Standard) instead of Lite (`$0.05/sec`, 8×). The draft-then-final workflow still pays off; the savings are just 2.7× instead of 8× until Vertex support lands.
+
+This was discovered during v3.5.0 real-API verification: the Gemini API
+returned HTTP 404 for every `-001` ID and rejected `--video-input` with
+"inlineData isn't supported by this model." Google's documentation
+describes the unified VEO 3.1 surface, but the Gemini API surface is a
+subset.
+
 ## Release Timeline
 
 | Date | Release |
@@ -21,8 +43,9 @@ plugin; use GA IDs for new work.
 
 | Property | Standard | Fast | Lite |
 |---|---|---|---|
-| **GA ID** | `veo-3.1-generate-001` | `veo-3.1-fast-generate-001` | `veo-3.1-lite-generate-001` |
-| **Preview ID** | `veo-3.1-generate-preview` | `veo-3.1-fast-generate-preview` | (same as GA) |
+| **Plugin callable today** | ✅ (preview ID) | ✅ (preview ID) | ❌ **Vertex AI only** |
+| **GA ID** | `veo-3.1-generate-001` (Vertex) | `veo-3.1-fast-generate-001` (Vertex) | `veo-3.1-lite-generate-001` (Vertex) |
+| **Preview ID** | `veo-3.1-generate-preview` ✅ | `veo-3.1-fast-generate-preview` ✅ | (no preview ID) |
 | **Status** | GA + preview | GA + preview | GA |
 | **Duration** | 4, 6, 8 s | 4, 6, 8 s | **5–60 s** (extended range) |
 | **Resolution** | 720p / 1080p / **4K** | 720p / 1080p / 4K | 720p / 1080p |
@@ -99,15 +122,16 @@ Lite as a $1.60 review pass before committing to the final render.
 | 5–60 s variable duration | ❌ | ❌ | ✅ | ❌ |
 | Object insertion (future) | planned | planned | planned | — |
 
-## Scene Extension v2
+## Scene Extension v2 — ⚠️ Vertex AI only
 
 VEO 3.1 supports extending a clip by passing the previous clip itself
-(not just its last frame) as the input. This preserves audio continuity
-across the seam but is capped at **720p**. Use `video_generate.py
---video-input <clip.mp4>` or `video_extend.py --method video` (default
-in v3.5.0+). The legacy last-frame keyframe method is available as
-`--method keyframe` for cases that need 1080p/4K hops and can tolerate
-audio discontinuity.
+(not just its last frame) as the input, preserving audio continuity
+across the seam (capped at 720p). **This feature is Vertex-AI-only as
+of 2026-04-10** — the Gemini API rejects the video inlineData part.
+`video_generate.py --video-input <clip.mp4>` returns a clear error
+pointing at this limitation; use `video_extend.py --method keyframe`
+(the legacy last-frame path) for extension today. Vertex AI support is
+tracked as a v3.6.0 roadmap item.
 
 ## Known Limitations
 

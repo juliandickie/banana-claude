@@ -41,18 +41,28 @@ Built on [AgriciDaniel/banana-claude](https://github.com/AgriciDaniel/banana-cla
 
 ### VEO 3.1 Model Variants & Draft Workflow (v3.5.0)
 
-Three VEO 3.1 tiers are now threaded through the entire video pipeline:
-**Standard** ($0.40/sec, flagship + 4K), **Fast** ($0.15/sec, mid tier),
-and **Lite** ($0.05/sec, 5–60s range, draft-first). The `video_sequence.py`
-pipeline gains `--quality-tier {draft,fast,standard,legacy}` so you can
-render a full 4-shot sequence at Lite for **$1.60** before committing to
-Standard at $12.80. `video_extend.py` defaults to **Scene Extension v2**
-(passes the previous clip directly, preserving audio continuity at 720p)
-with the legacy keyframe path still available as `--method keyframe`.
+**What works today (Gemini API):** Two VEO 3.1 tiers are now threaded
+through the entire video pipeline — **Standard** ($0.40/sec, flagship
++ 4K) and **Fast** ($0.15/sec, mid tier). The `video_sequence.py`
+pipeline gains `--quality-tier {draft,fast,standard,lite,legacy}` so
+you can render a 4-shot 30-second sequence at Fast draft for **$4.80**
+before committing to Standard at $12.80 — a 2.7× savings.
 
-Also in v3.5.0: corrected VEO pricing (Standard was previously mislabeled
-at $0.15/sec in the cost tracker), new `--negative-prompt`/`--seed`/`--video-input`
-flags on `video_generate.py`, token-limit prompt validation (1,024-token
+**What's documented but gated until v3.6.0:** VEO 3.1 Lite
+(`veo-3.1-lite-generate-001`, $0.05/sec, 5–60s range), Legacy 3.0, GA
+`-001` IDs, and Scene Extension v2 (`--video-input`) are all **Vertex
+AI only**. The Gemini API (`generativelanguage.googleapis.com`) used
+by this plugin returns HTTP 404 for these IDs and rejects the video
+inlineData part. v3.5.0 documents the full capability surface and
+gates the Vertex-only features with clear error messages pointing at
+the v3.6.0 Vertex AI backend work. See
+[`skills/video/references/veo-models.md`](skills/video/references/veo-models.md)
+→ Backend Availability for details.
+
+Also in v3.5.0: **corrected VEO pricing** (Standard was previously
+mislabeled at $0.15/sec in the cost tracker — the correct rate is
+$0.40/sec), new `--negative-prompt`/`--seed` flags on
+`video_generate.py`, token-limit prompt validation (1,024-token
 ceiling), 48-hour video retention warnings in output manifests, and a
 full rewrite of `skills/video/references/veo-models.md` with the
 3-tier capability matrix, known limitations (character drift, text
@@ -61,7 +71,8 @@ guidance.
 
 **Critical bug fix:** the Lite model ID was broken in v3.4.x (the plugin
 shipped `veo-3.1-generate-lite-preview` which does not exist). v3.5.0
-ships the real ID `veo-3.1-lite-generate-001`.
+ships the real ID `veo-3.1-lite-generate-001` — fully functional once
+the Vertex AI backend lands in v3.6.0.
 
 ### Video Generation with VEO 3.1 (v3.0.0–v3.4.0)
 
@@ -534,16 +545,20 @@ An alternative API backend using `google/nano-banana-2` on Replicate. Useful whe
 
 ### Video Models
 
-| Model | ID | Notes |
-|-------|----|-------|
-| VEO 3.1 Standard (default) | `veo-3.1-generate-preview` / `-001` | 4-8s, 1080p/4K, native audio, $0.40/sec |
-| VEO 3.1 Fast | `veo-3.1-fast-generate-preview` / `-001` | 4-8s, 1080p/4K, faster turnaround, $0.15/sec |
-| VEO 3.1 Lite | `veo-3.1-lite-generate-001` | 5-60s, 720p/1080p, 1:1 supported, $0.05/sec — **draft tier** |
-| VEO 3.0 (legacy) | `veo-3.0-generate-001` | 4-8s, 1080p, predecessor for reproduction workflows |
+| Model | ID | Backend | Notes |
+|-------|----|---|---|
+| VEO 3.1 Standard (default) | `veo-3.1-generate-preview` | ✅ Gemini API | 4-8s, 1080p/4K, native audio, $0.40/sec |
+| VEO 3.1 Fast | `veo-3.1-fast-generate-preview` | ✅ Gemini API | 4-8s, 1080p/4K, $0.15/sec — **draft tier** |
+| VEO 3.1 Standard GA | `veo-3.1-generate-001` | ❌ Vertex AI only (v3.6.0) | GA equivalent of preview |
+| VEO 3.1 Fast GA | `veo-3.1-fast-generate-001` | ❌ Vertex AI only (v3.6.0) | GA equivalent of preview |
+| VEO 3.1 Lite | `veo-3.1-lite-generate-001` | ❌ Vertex AI only (v3.6.0) | 5-60s, 1:1 supported, $0.05/sec |
+| VEO 3.0 (legacy) | `veo-3.0-generate-001` | ❌ Vertex AI only (v3.6.0) | Predecessor for reproduction |
 
-For sequences, **draft at Lite first** (`/video sequence generate
---quality-tier draft`) then re-render approved shots at Standard. See
-the draft-then-final workflow in `skills/video/references/video-sequences.md`.
+For sequences, **draft at Fast first** (`/video sequence generate
+--quality-tier draft`) then re-render approved shots at Standard —
+2.7× cheaper than blind Standard. Lite drops this to 8× cheaper once
+the Vertex AI backend ships in v3.6.0. See the draft-then-final
+workflow in `skills/video/references/video-sequences.md`.
 
 ## Architecture
 

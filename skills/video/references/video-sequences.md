@@ -19,39 +19,53 @@ locks in per-shot continuity via first/last frame keyframing.
 Plan → Storyboard → Generate (draft) → Review → Generate (final) → Stitch
 ```
 
-With three VEO tiers, the cheapest way to validate a sequence is to run
-the whole thing at **Lite draft** quality first, review the motion and
-continuity, then re-run the approved shots at **Fast** or **Standard**
-for delivery.
+With two VEO tiers available on the Gemini API today (Fast and Standard),
+the cheapest validated path is to run the whole sequence at **Fast draft**
+quality first, review the motion and continuity, then re-run the approved
+shots at **Standard** for delivery.
 
 ```bash
-# 1. First pass: draft at Lite ($0.05/sec)
+# 1. First pass: draft at Fast ($0.15/sec, 2.7x cheaper than Standard)
 python3 ${CLAUDE_SKILL_DIR}/scripts/video_sequence.py generate \
     --storyboard ~/storyboard --quality-tier draft
 
 # 2. Review the MP4s. Approve, tweak prompts, or regenerate.
 
-# 3. Final pass: Fast or Standard at full quality
+# 3. Final pass: Standard for delivery
 python3 ${CLAUDE_SKILL_DIR}/scripts/video_sequence.py generate \
     --storyboard ~/storyboard --quality-tier standard
 ```
 
-### Cost Comparison (4 shots × 8 s, 30-second sequence)
+> **Note on `--quality-tier draft`:** Until the Vertex AI backend ships
+> in v3.6.0, `draft` maps to **Fast** (`$0.15/sec`) rather than Lite
+> (`$0.05/sec`). Lite and Scene Extension v2 are currently Vertex-AI-only
+> and return a clear error if requested. See
+> `references/veo-models.md` → Backend Availability for details.
+
+### Cost Comparison (4 shots × 8 s, 30-second sequence, Gemini API today)
 
 | Mode | Draft pass | Final pass | Total |
 |---|---|---|---|
 | Blind at Standard | — | $12.80 | $12.80 |
 | Blind at Fast | — | $4.80 | $4.80 |
-| Blind at Lite | — | $1.60 | $1.60 |
-| Draft + Fast final | $1.60 | $4.80 | **$6.40** |
-| Draft + Standard final | $1.60 | $12.80 | **$14.40** |
+| **Draft (Fast) + Standard final** | **$4.80** | **$12.80** | **$17.60** |
+| Draft (Fast) only, ship at Fast | $4.80 | — | $4.80 |
+
+Once Vertex AI lands in v3.6.0 and Lite becomes reachable, a Lite draft
+drops the first column to $1.60:
+
+| Mode (v3.6.0+ with Vertex AI / Lite) | Draft pass | Final pass | Total |
+|---|---|---|---|
+| Lite draft + Fast final | $1.60 | $4.80 | **$6.40** |
+| Lite draft + Standard final | $1.60 | $12.80 | **$14.40** |
 
 Draft-then-final is only "more expensive" on paper — in practice, blind
 generation at Standard typically needs 1–2 regenerations per shot because
 the user cannot preview motion before committing. One regeneration of a
-single 8 s Standard shot ($3.20) already exceeds the entire $1.60 draft
-pass. **Draft-then-final pays for itself the first time it prevents a
-regeneration on any shot at Standard tier.**
+single 8 s Standard shot ($3.20) already exceeds the cost of draft-pass
+protection in the Vertex-enabled table above. **Draft-then-final pays
+for itself the first time it prevents a regeneration on any shot at
+Standard tier.**
 
 ## Timestamp Prompting: Pack Multiple Shots per Clip
 

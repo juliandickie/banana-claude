@@ -35,20 +35,38 @@ DEFAULT_POLL_INTERVAL = 10
 DEFAULT_MAX_WAIT = 300
 OUTPUT_DIR = Path.home() / "Documents" / "nanobanana_generated"
 
-# All four official VEO 3.x model variants per reference doc (April 2026).
-# IMPORTANT: `veo-3.1-lite-generate-001` is the official Lite ID. The previous
-# plugin releases used `veo-3.1-generate-lite-preview` which does not exist as
-# a real API endpoint, so Lite was never actually callable before v3.5.0.
+# All VEO 3.x model IDs the plugin knows about. Not every ID is callable
+# through every backend — see MODELS_VERTEX_ONLY below.
 VALID_MODELS = {
-    # Preview IDs (tested working, still accepted going forward)
+    # Preview IDs — callable on both Gemini API and Vertex AI
     "veo-3.1-generate-preview",       # Standard (flagship, highest quality)
     "veo-3.1-fast-generate-preview",  # Fast (mid tier)
-    # GA IDs (official production, recommended going forward)
+    # GA IDs — callable on Vertex AI only (as of 2026-04-10)
     "veo-3.1-generate-001",           # Standard GA
     "veo-3.1-fast-generate-001",      # Fast GA
-    "veo-3.1-lite-generate-001",      # Lite (draft tier, GA, launched 2026-03-31)
-    "veo-3.0-generate-001",           # Legacy (predecessor, still available)
+    "veo-3.1-lite-generate-001",      # Lite (draft tier, 5-60s range)
+    "veo-3.0-generate-001",           # Legacy (predecessor)
 }
+
+# These model IDs return HTTP 404 from `generativelanguage.googleapis.com`
+# (the Gemini API surface this script uses). They are reachable only via
+# Vertex AI's `*-aiplatform.googleapis.com` endpoint with OAuth/service-
+# account auth, which the stdlib-only posture of this script cannot
+# currently do without pulling in `google-auth` as a dependency.
+#
+# Verified empirically on 2026-04-10 — see PROGRESS.md session 7.
+# Vertex AI backend support is tracked as a v3.6.0 roadmap item.
+MODELS_VERTEX_ONLY = {
+    "veo-3.1-generate-001",
+    "veo-3.1-fast-generate-001",
+    "veo-3.1-lite-generate-001",
+    "veo-3.0-generate-001",
+}
+
+# Scene Extension v2 (`--video-input`) is also Vertex-only as of
+# 2026-04-10. The Gemini API rejects the inlineData video part with
+# "inlineData isn't supported by this model".
+VIDEO_INPUT_VERTEX_ONLY = True
 
 # VEO 3.1 accepts prompts up to 1,024 tokens (English only). We have no
 # tokenizer dependency, so approximate using ~4 chars/token for English prose.
@@ -422,7 +440,22 @@ def main():
     if args.model not in VALID_MODELS:
         _error_exit(
             f"Invalid model '{args.model}'. Valid: {sorted(VALID_MODELS)}. "
-            f"Tip: use 'veo-3.1-lite-generate-001' for draft/preview work."
+            f"Tip: use 'veo-3.1-fast-generate-preview' for draft/preview work."
+        )
+
+    # Gate Vertex-only model IDs. This script uses the Gemini API surface
+    # (`generativelanguage.googleapis.com`) which does not serve Lite, GA
+    # `-001` IDs, or Legacy 3.0 as of 2026-04-10. Fail fast with a clear
+    # pointer to the v3.6.0 roadmap item so users don't waste time.
+    if args.model in MODELS_VERTEX_ONLY:
+        fast_fallback = "veo-3.1-fast-generate-preview"
+        _error_exit(
+            f"'{args.model}' is not available on the Gemini API surface "
+            f"(generativelanguage.googleapis.com). It is currently reachable "
+            f"only via Vertex AI, which this plugin does not yet support. "
+            f"For a cheap draft-quality alternative, use "
+            f"--model {fast_fallback} (~$0.15/sec). Vertex AI backend is "
+            f"tracked as a v3.6.0 roadmap item — see ROADMAP.md."
         )
 
     # Model-aware duration validation (Lite supports 5-60s, others only {4,6,8})
@@ -460,6 +493,17 @@ def main():
     # Scene Extension v2 validation: --video-input is mutually exclusive with
     # all image-based inputs. Also force 720p since Scene Extension is limited
     # to 720p per the reference doc.
+    if args.video_input and VIDEO_INPUT_VERTEX_ONLY:
+        _error_exit(
+            "--video-input (Scene Extension v2) is not available on the "
+            "Gemini API surface this plugin uses. The API rejects the video "
+            "inlineData part with 'inlineData isn't supported by this "
+            "model'. It is currently reachable only via Vertex AI. For clip "
+            "extension, use `video_extend.py --method keyframe` which "
+            "extracts the last frame and uses it as the first-frame seed "
+            "for the next hop (no audio continuity, but works today). "
+            "Vertex AI backend is tracked as a v3.6.0 roadmap item."
+        )
     if args.video_input:
         conflicting = []
         if args.first_frame:
