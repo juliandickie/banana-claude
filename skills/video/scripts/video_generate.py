@@ -25,6 +25,14 @@ import urllib.error
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+# Vertex AI backend helper (commit 1 of v3.6.0). This module provides the
+# request/response translators for the Vertex AI `instances`/`parameters`
+# wrapper shape. It's imported unconditionally because it's stdlib-only
+# and has no side effects at import time. The backend path is chosen per
+# call by _select_backend() below.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import _vertex_backend as vertex  # noqa: E402
+
 API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 OPERATIONS_BASE = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_MODEL = "veo-3.1-generate-preview"
@@ -68,6 +76,27 @@ MODELS_VERTEX_ONLY = {
 # "inlineData isn't supported by this model".
 VIDEO_INPUT_VERTEX_ONLY = True
 
+# Backend selection for --backend auto. v3.6.0 adds a real Vertex AI
+# backend (via _vertex_backend.py) that reaches models and features the
+# Gemini API surface does not serve.
+BACKEND_GEMINI_API = "gemini-api"
+BACKEND_VERTEX_AI = "vertex-ai"
+BACKEND_AUTO = "auto"
+VALID_BACKENDS = {BACKEND_GEMINI_API, BACKEND_VERTEX_AI, BACKEND_AUTO}
+
+# Scene Extension v2 on Vertex has a single fixed durationSeconds. All
+# other values are rejected with "supported durations are [7] for
+# feature video_extension". Text/image-to-video still use the {4, 6, 8}
+# set — this constant applies ONLY when --video-input is set and the
+# request is routed to Vertex.
+VIDEO_EXTENSION_FIXED_DURATION = 7
+
+# Service-agent cold-start retry tuning. The first Scene Extension v2
+# call on a fresh Vertex project returns a transient "Service agents
+# are being provisioned" error (code 9) that auto-resolves in ~60-90s.
+# We sleep then retry once; a second failure surfaces to the user.
+SERVICE_AGENT_RETRY_SECONDS = 90
+
 # VEO 3.1 accepts prompts up to 1,024 tokens (English only). We have no
 # tokenizer dependency, so approximate using ~4 chars/token for English prose.
 # Warn near the limit, hard-reject clearly over.
@@ -79,14 +108,17 @@ PROMPT_ERROR_CHARS = 4500  # ~1,125 tokens
 # store URIs become stale after this window.
 DOWNLOAD_RETENTION_HOURS = 48
 
-# Model-aware parameter constraints. Lite supports a wider range of
-# durations (5-60s) and a square aspect ratio (1:1) that the other
-# variants reject. See reference doc lines 493-498.
+# Model-aware parameter constraints. All VEO 3.1 tiers share the same
+# {4, 6, 8} duration set. v3.5.0 documented a 5-60 second range for Lite
+# based on unverified docs; real-API testing during v3.6.0 proved this
+# wrong — the API explicitly rejects 5-second Lite requests with
+# "Unsupported output video duration 5 seconds, supported durations are
+# [8,4,6] for feature text_to_video".
 STANDARD_DURATIONS = {4, 6, 8}
-LITE_DURATIONS = set(range(5, 61))  # 5..60 inclusive
 VALID_DURATIONS_BY_MODEL = {
-    "veo-3.1-lite-generate-001": LITE_DURATIONS,
-    # All other models fall through to STANDARD_DURATIONS via _valid_durations()
+    # No model-specific overrides — all VEO 3.1 tiers use STANDARD_DURATIONS.
+    # Kept as an empty dict so future models with different ranges (e.g. a
+    # long-form tier) have a natural place to land.
 }
 
 STANDARD_RATIOS = {"16:9", "9:16"}
@@ -110,6 +142,35 @@ def _valid_durations(model):
 def _valid_ratios(model):
     """Return the set of valid aspect ratios for a given model."""
     return VALID_RATIOS_BY_MODEL.get(model, STANDARD_RATIOS)
+
+
+def _select_backend(args):
+    """Return which backend to use for this request.
+
+    `--backend auto` routing rules (in precedence order):
+    1. `--video-input` set → Vertex (Gemini API rejects inline video)
+    2. `--first-frame` / `--last-frame` / `--reference-image` set → Vertex
+       (Gemini API rejects the inlineData image parts for VEO as of 2026-04-10)
+    3. `--model` is a GA `-001` ID → Vertex (Gemini API returns 404)
+    4. `--model` is Lite or Legacy 3.0 → Vertex (Gemini API returns 404)
+    5. Otherwise (text-only on a preview ID) → Gemini API (preserves the
+       v3.4.x code path for backward compat)
+
+    Explicit `--backend gemini-api` or `--backend vertex-ai` always wins.
+    """
+    if args.backend != BACKEND_AUTO:
+        return args.backend
+
+    # Any form of non-text input forces Vertex.
+    if args.video_input or args.first_frame or args.last_frame or args.reference_image:
+        return BACKEND_VERTEX_AI
+
+    # Vertex-only model IDs force Vertex.
+    if args.model in MODELS_VERTEX_ONLY:
+        return BACKEND_VERTEX_AI
+
+    # Text-only on a preview-tier model → Gemini API.
+    return BACKEND_GEMINI_API
 
 MIME_MAP = {
     ".png": "image/png",
@@ -229,29 +290,28 @@ def _http_request(url, data=None, method="GET", max_retries=3):
     _error_exit("Max retries exceeded (rate limited)")
 
 
-def _submit_operation(prompt, model, duration, ratio, resolution, api_key,
-                      first_frame=None, last_frame=None, ref_images=None,
-                      negative_prompt=None, seed=None, video_input=None):
-    """POST generation request, return operation name.
+def _submit_gemini_api(prompt, model, duration, ratio, resolution, api_key,
+                       first_frame=None, last_frame=None, ref_images=None,
+                       negative_prompt=None, seed=None, video_input=None):
+    """POST to the Gemini API (generativelanguage.googleapis.com) endpoint.
 
-    Generation modes (set by the input parameters):
-    - Text-to-Video: prompt only (no image or video input)
-    - Image-to-Video: first_frame set
-    - First+Last Frame: first_frame + last_frame set
-    - Ingredients to Video: ref_images set (up to 3)
-    - Scene Extension v2: video_input set (passes previous clip bytes)
+    Uses the legacy request shape:
+      {
+        "instances": [{"prompt": "...", "image": {"inlineData": {...}}, ...}],
+        "parameters": {...}
+      }
 
-    NOTE: video_input is mutually exclusive with first_frame/last_frame/ref_images.
-    TODO(v3.6.0): Extract instance-building into a mode-dispatched helper — this
-    function is growing to handle 5 distinct modes and would benefit from refactoring.
+    Image parts use `inlineData.data` (Gemini convention) rather than
+    `bytesBase64Encoded` (Vertex convention). This is the v3.4.x-compatible
+    code path that preserves working text-to-video on Standard/Fast preview
+    IDs. As of 2026-04-10 this path does NOT serve image-to-video, Lite, or
+    GA -001 IDs — callers should route those through Vertex via _select_backend().
     """
     url = f"{API_BASE}/{model}:predictLongRunning?key={api_key}"
 
     instance = {"prompt": prompt}
 
     if video_input:
-        # Scene Extension v2: pass the previous video as inline data.
-        # The API will generate a continuation that preserves audio and motion.
         b64, mime = _read_video_base64(video_input)
         instance["video"] = {"inlineData": {"data": b64, "mimeType": mime}}
     else:
@@ -285,14 +345,13 @@ def _submit_operation(prompt, model, duration, ratio, resolution, api_key,
     if resolution != DEFAULT_RESOLUTION:
         body["parameters"]["resolution"] = resolution
 
-    # Optional generation controls added in v3.5.0.
-    # REST API uses camelCase keys: negativePrompt and seed (not snake_case).
     if negative_prompt:
         body["parameters"]["negativePrompt"] = negative_prompt
     if seed is not None:
         body["parameters"]["seed"] = seed
 
-    _progress({"status": "submitting", "model": model, "duration": duration})
+    _progress({"status": "submitting", "backend": BACKEND_GEMINI_API,
+               "model": model, "duration": duration})
     result = _http_request(url, data=body, method="POST")
 
     op_name = result.get("name")
@@ -303,15 +362,113 @@ def _submit_operation(prompt, model, duration, ratio, resolution, api_key,
     return op_name
 
 
-def _poll_operation(operation_name, api_key, interval, max_wait):
-    """Poll operation until done. Return response dict."""
+def _submit_vertex_ai(prompt, model, duration, ratio, resolution,
+                      vertex_creds,
+                      first_frame=None, last_frame=None, ref_images=None,
+                      negative_prompt=None, seed=None, video_input=None):
+    """POST to the Vertex AI endpoint via _vertex_backend helper.
+
+    Uses the Vertex `instances`/`parameters` wrapper shape with image
+    parts encoded as `bytesBase64Encoded` (NOT `inlineData.data`). The
+    helper module handles URL composition, request body validation,
+    resolution normalization (4K → 4k), and submit response parsing.
+
+    Reference images (`ref_images`) are currently only supported on the
+    Gemini API code path. Vertex AI Veo does accept reference images but
+    under a different schema name — deferred to v3.6.1.
+    """
+    if ref_images:
+        _error_exit(
+            "--reference-image is not yet supported on the Vertex AI backend. "
+            "This is a v3.6.1 scope item. For now, use --first-frame or "
+            "--last-frame to guide generation, or force "
+            "--backend gemini-api (which accepts reference-images but only "
+            "for text-to-video on preview model IDs)."
+        )
+    if last_frame:
+        # Vertex AI Veo 3.1 supports first-frame image-to-video and
+        # last-frame interpolation, but the latter uses a different
+        # request field that we haven't probed empirically. Defer to v3.6.1.
+        _error_exit(
+            "--last-frame is not yet supported on the Vertex AI backend. "
+            "First/last frame interpolation is a v3.6.1 scope item. "
+            "Use --first-frame alone for now, or force "
+            "--backend gemini-api for the legacy last-frame path."
+        )
+
+    try:
+        body = vertex.build_vertex_request_body(
+            prompt,
+            duration=duration,
+            aspect_ratio=ratio,
+            resolution=resolution,
+            image_path=first_frame,
+            video_input_path=video_input,
+            negative_prompt=negative_prompt,
+            seed=seed,
+            sample_count=1,
+        )
+    except vertex.VertexBackendError as e:
+        _error_exit(f"Vertex request build failed: {e}")
+
+    url = vertex.build_vertex_url(
+        model=model,
+        method=vertex.METHOD_SUBMIT,
+        project=vertex_creds["project_id"],
+        location=vertex_creds["location"],
+        api_key=vertex_creds["api_key"],
+    )
+
+    _progress({
+        "status": "submitting",
+        "backend": BACKEND_VERTEX_AI,
+        "model": model,
+        "duration": duration,
+        "project": vertex_creds["project_id"],
+        "location": vertex_creds["location"],
+    })
+
+    try:
+        result = vertex.vertex_post(url, body, timeout=120)
+        op_name = vertex.parse_vertex_submit_response(result)
+    except vertex.VertexBackendError as e:
+        _error_exit(f"Vertex submit failed: {e}")
+
+    _progress({"status": "submitted", "operation": op_name})
+    return op_name
+
+
+def _submit_operation(*, backend, vertex_creds, **kwargs):
+    """Dispatch to the right backend.
+
+    kwargs are forwarded to either _submit_gemini_api or _submit_vertex_ai.
+    Both take compatible keyword signatures: prompt, model, duration, ratio,
+    resolution, first_frame, last_frame, ref_images, negative_prompt, seed,
+    video_input. The Gemini path also takes `api_key`; the Vertex path takes
+    `vertex_creds` instead. The dispatcher translates.
+    """
+    if backend == BACKEND_VERTEX_AI:
+        return _submit_vertex_ai(vertex_creds=vertex_creds, **kwargs)
+    # Gemini API path: the api_key is already in kwargs as api_key=...
+    return _submit_gemini_api(**kwargs)
+
+
+def _poll_gemini_api(operation_name, api_key, interval, max_wait):
+    """Poll the Gemini API operation endpoint via GET.
+
+    Gemini API polling shape: GET /v1beta/{operation_name}?key={api_key}
+    Returns the raw response dict on done=true.
+    """
     url = f"{OPERATIONS_BASE}/{operation_name}?key={api_key}"
     start = time.time()
 
     while True:
         elapsed = time.time() - start
         if elapsed > max_wait:
-            _error_exit(f"Timeout: operation not done after {max_wait}s. Operation: {operation_name}")
+            _error_exit(
+                f"Timeout: operation not done after {max_wait}s. "
+                f"Operation: {operation_name}"
+            )
 
         result = _http_request(url, method="GET")
 
@@ -324,21 +481,111 @@ def _poll_operation(operation_name, api_key, interval, max_wait):
                 _error_exit(f"Operation failed: {msg}")
             return result
 
-        _progress({"polling": True, "elapsed": int(elapsed), "status": "processing"})
+        _progress({"polling": True, "backend": BACKEND_GEMINI_API,
+                   "elapsed": int(elapsed), "status": "processing"})
         time.sleep(interval)
 
 
-def _save_video(response, output_dir, api_key=None):
-    """Extract video from response, save as MP4, return path."""
+def _poll_vertex_ai(operation_name, model, vertex_creds, interval, max_wait):
+    """Poll the Vertex AI operation via POST :fetchPredictOperation.
+
+    Returns a tuple (status, payload):
+      ("done", [bytes, ...])            — video bytes ready to save
+      ("service_agent_provisioning",
+       error_dict)                      — caller should sleep and retry submit
+      error is raised via _error_exit() for any other failure mode.
+
+    Unlike the Gemini API path (which returns the full response dict),
+    this path pre-parses and returns the decoded video bytes directly.
+    The caller's _save_video path is backend-aware to match.
+    """
+    url = vertex.build_vertex_url(
+        model=model,
+        method=vertex.METHOD_POLL,
+        project=vertex_creds["project_id"],
+        location=vertex_creds["location"],
+        api_key=vertex_creds["api_key"],
+    )
+    body = {"operationName": operation_name}
+    start = time.time()
+
+    while True:
+        elapsed = time.time() - start
+        if elapsed > max_wait:
+            _error_exit(
+                f"Timeout: operation not done after {max_wait}s. "
+                f"Operation: {operation_name}"
+            )
+
+        try:
+            result = vertex.vertex_post(url, body, timeout=60)
+            status, payload = vertex.parse_vertex_poll_response(result)
+        except vertex.VertexBackendError as e:
+            _error_exit(f"Vertex poll failed: {e}")
+
+        if status == "running":
+            _progress({
+                "polling": True,
+                "backend": BACKEND_VERTEX_AI,
+                "elapsed": int(elapsed),
+                "status": "processing",
+            })
+            time.sleep(interval)
+            continue
+
+        if status == "done":
+            return ("done", payload)
+
+        if status == "service_agent_provisioning":
+            # Surface this up so the caller can decide whether to retry the
+            # entire submit+poll cycle. Polling again won't help — the
+            # operation is already marked done=true with the error.
+            return ("service_agent_provisioning", payload)
+
+        # status == "error": surface the message from the parser
+        msg = payload.get("message", str(payload)) if isinstance(payload, dict) else str(payload)
+        if "safety" in msg.lower() or "blocked" in msg.lower() or "RAI_FILTERED" in str(payload.get("code", "")):
+            _error_exit(f"VIDEO_SAFETY: {msg}")
+        _error_exit(f"Vertex operation failed: {msg}")
+
+
+def _poll_operation(*, backend, operation_name, api_key, vertex_creds, model,
+                    interval, max_wait):
+    """Dispatch polling to the right backend.
+
+    Returns:
+        - For Gemini API: the raw response dict (legacy shape), for _save_video
+        - For Vertex: a tuple ("done", [video_bytes, ...]) or
+                     ("service_agent_provisioning", error_dict)
+    """
+    if backend == BACKEND_VERTEX_AI:
+        return _poll_vertex_ai(operation_name, model, vertex_creds, interval, max_wait)
+    return _poll_gemini_api(operation_name, api_key, interval, max_wait)
+
+
+def _save_video_gemini_api(response, output_dir, api_key=None):
+    """Save video from a Gemini API poll response. Returns the output path.
+
+    The Gemini API returns a response shape that's been through at least
+    three variants in this codebase's history:
+      - response.generateVideoResponse.generatedSamples[0].video.uri
+      - response.generatedSamples[0].video.uri (older path)
+      - samples[0].video.bytesBase64Encoded (inline bytes)
+
+    We try each shape in turn. The video URI path requires downloading
+    with the API key in the query string; the bytesBase64Encoded path
+    writes directly.
+    """
     resp_body = response.get("response", {})
-    # Try the documented path: response.generateVideoResponse.generatedSamples
     gen_resp = resp_body.get("generateVideoResponse", {})
     samples = gen_resp.get("generatedSamples", [])
-    # Fallback to direct path for older API versions
     if not samples:
         samples = resp_body.get("generatedSamples", [])
     if not samples:
-        _error_exit(f"No video in response. Response keys: {list(resp_body.keys())}, body: {json.dumps(resp_body)[:300]}")
+        _error_exit(
+            f"No video in response. Response keys: {list(resp_body.keys())}, "
+            f"body: {json.dumps(resp_body)[:300]}"
+        )
 
     video_data = samples[0].get("video", {})
     b64 = video_data.get("bytesBase64Encoded")
@@ -359,7 +606,6 @@ def _save_video(response, output_dir, api_key=None):
             f.write(base64.b64decode(b64))
     else:
         _progress({"status": "downloading", "uri": uri})
-        # Google video URIs require API key authentication
         download_url = uri
         if api_key and "key=" not in uri:
             sep = "&" if "?" in uri else "?"
@@ -379,12 +625,57 @@ def _save_video(response, output_dir, api_key=None):
     return str(output_path)
 
 
+def _save_video_vertex_ai(video_bytes_list, output_dir):
+    """Save video bytes already decoded by the Vertex poll path.
+
+    Vertex returns video bytes inline in the poll response, so there's
+    no separate download step — just write to disk. The first video in
+    the list is saved and its path returned. (sampleCount is pinned to 1
+    in v3.6.0; multi-video support is a v3.6.1 scope item.)
+    """
+    if not video_bytes_list:
+        _error_exit("Vertex poll returned an empty video list.")
+    out = Path(output_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    filename = f"video_{timestamp}.mp4"
+    output_path = (out / filename).resolve()
+    _progress({
+        "status": "saving",
+        "backend": BACKEND_VERTEX_AI,
+        "source": "inline_bytes",
+        "bytes": len(video_bytes_list[0]),
+    })
+    with open(output_path, "wb") as f:
+        f.write(video_bytes_list[0])
+    return str(output_path)
+
+
+def _save_video(*, backend, poll_result, output_dir, api_key=None):
+    """Dispatch save to the right backend.
+
+    poll_result is whatever _poll_operation returned for this backend:
+      - Gemini API: the raw response dict
+      - Vertex AI: a tuple (status, payload)
+    """
+    if backend == BACKEND_VERTEX_AI:
+        status, payload = poll_result
+        if status != "done":
+            _error_exit(
+                f"_save_video called for Vertex with status={status!r}; "
+                f"expected 'done'. Caller bug."
+            )
+        return _save_video_vertex_ai(payload, output_dir)
+    return _save_video_gemini_api(poll_result, output_dir, api_key=api_key)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate video via Google VEO 3.1 REST API")
     parser.add_argument("--prompt", required=True, help="Video generation prompt")
     parser.add_argument("--duration", type=int, default=DEFAULT_DURATION,
-                        help=f"Duration in seconds. Standard/Fast/3.0: {{4,6,8}}. "
-                             f"Lite: 5-60. (default: {DEFAULT_DURATION})")
+                        help=f"Duration in seconds. All VEO 3.1 tiers: {{4,6,8}}. "
+                             f"Scene Extension v2 (--video-input) uses 7. "
+                             f"(default: {DEFAULT_DURATION})")
     parser.add_argument("--aspect-ratio", default=DEFAULT_RATIO,
                         help=f"Aspect ratio. Standard/Fast/3.0: 16:9 or 9:16. "
                              f"Lite also supports 1:1. (default: {DEFAULT_RATIO})")
@@ -409,13 +700,29 @@ def main():
                         help="What to avoid in the generation (e.g. 'blurry, low quality, distorted')")
     parser.add_argument("--seed", type=int, default=None,
                         help="Integer seed for reproducible results")
-    parser.add_argument("--api-key", default=None, help="Google AI API key")
+    parser.add_argument("--api-key", default=None, help="Google AI API key (Gemini API backend)")
     parser.add_argument("--poll-interval", type=int, default=DEFAULT_POLL_INTERVAL,
                         help=f"Seconds between polls (default: {DEFAULT_POLL_INTERVAL})")
     parser.add_argument("--max-wait", type=int, default=DEFAULT_MAX_WAIT,
                         help=f"Max wait seconds (default: {DEFAULT_MAX_WAIT})")
     parser.add_argument("--output", default=str(OUTPUT_DIR),
                         help=f"Output directory (default: {OUTPUT_DIR})")
+    # Backend selection (v3.6.0). `auto` routes to Vertex AI when the
+    # request needs features not served by the Gemini API: Lite/GA/Legacy
+    # model IDs, image-to-video, or Scene Extension v2.
+    parser.add_argument("--backend", default=BACKEND_AUTO, choices=sorted(VALID_BACKENDS),
+                        help=f"Which backend to use. 'auto' routes Vertex-only features "
+                             f"through Vertex AI and keeps text-to-video on Gemini API. "
+                             f"(default: {BACKEND_AUTO})")
+    parser.add_argument("--vertex-api-key", default=None,
+                        help="Vertex AI API key (bound to service account, format AQ.*). "
+                             "Loads from VERTEX_API_KEY env or ~/.banana/config.json if unset.")
+    parser.add_argument("--vertex-project", default=None,
+                        help="GCP project ID for Vertex AI. Loads from VERTEX_PROJECT_ID env "
+                             "or ~/.banana/config.json if unset.")
+    parser.add_argument("--vertex-location", default=None,
+                        help="Vertex AI region (e.g. us-central1). Loads from VERTEX_LOCATION "
+                             "env or ~/.banana/config.json if unset. Defaults to us-central1.")
 
     args = parser.parse_args()
 
@@ -443,31 +750,35 @@ def main():
             f"Tip: use 'veo-3.1-fast-generate-preview' for draft/preview work."
         )
 
-    # Gate Vertex-only model IDs. This script uses the Gemini API surface
-    # (`generativelanguage.googleapis.com`) which does not serve Lite, GA
-    # `-001` IDs, or Legacy 3.0 as of 2026-04-10. Fail fast with a clear
-    # pointer to the v3.6.0 roadmap item so users don't waste time.
-    if args.model in MODELS_VERTEX_ONLY:
-        fast_fallback = "veo-3.1-fast-generate-preview"
+    # Resolve the backend up front so the remaining validations and
+    # gates can be backend-aware.
+    backend = _select_backend(args)
+
+    # Gate Vertex-only model IDs ONLY on the Gemini API path. When the
+    # request is routed to Vertex (either by --backend auto or explicit
+    # --backend vertex-ai), these models are fully callable.
+    if backend == BACKEND_GEMINI_API and args.model in MODELS_VERTEX_ONLY:
         _error_exit(
             f"'{args.model}' is not available on the Gemini API surface "
-            f"(generativelanguage.googleapis.com). It is currently reachable "
-            f"only via Vertex AI, which this plugin does not yet support. "
-            f"For a cheap draft-quality alternative, use "
-            f"--model {fast_fallback} (~$0.15/sec). Vertex AI backend is "
-            f"tracked as a v3.6.0 roadmap item — see ROADMAP.md."
+            f"(generativelanguage.googleapis.com). It is reachable only via "
+            f"Vertex AI. Drop --backend gemini-api (default --backend auto "
+            f"will route this model through Vertex automatically) or use "
+            f"--model veo-3.1-fast-generate-preview (~$0.15/sec) for the "
+            f"Gemini API path."
         )
 
-    # Model-aware duration validation (Lite supports 5-60s, others only {4,6,8})
-    valid_durations = _valid_durations(args.model)
-    if args.duration not in valid_durations:
-        if args.model == "veo-3.1-lite-generate-001":
-            _error_exit(f"Invalid duration {args.duration}. Lite supports 5-60 seconds.")
-        _error_exit(
-            f"Invalid duration {args.duration} for {args.model}. "
-            f"Valid: {sorted(valid_durations)}. "
-            f"Tip: for durations outside 4/6/8, use --model veo-3.1-lite-generate-001."
-        )
+    # Duration validation. All VEO 3.1 tiers accept {4, 6, 8}.
+    # Skipped when the request is Scene Extension v2 on the Vertex backend —
+    # that path has its own hard durationSeconds=7 constraint enforced below
+    # in the --video-input block and again in build_vertex_request_body.
+    skip_duration_check = args.video_input and backend == BACKEND_VERTEX_AI
+    if not skip_duration_check:
+        valid_durations = _valid_durations(args.model)
+        if args.duration not in valid_durations:
+            _error_exit(
+                f"Invalid duration {args.duration} for {args.model}. "
+                f"Valid: {sorted(valid_durations)}."
+            )
 
     # Model-aware aspect ratio validation (Lite supports 1:1 in addition to 16:9/9:16)
     valid_ratios = _valid_ratios(args.model)
@@ -493,16 +804,13 @@ def main():
     # Scene Extension v2 validation: --video-input is mutually exclusive with
     # all image-based inputs. Also force 720p since Scene Extension is limited
     # to 720p per the reference doc.
-    if args.video_input and VIDEO_INPUT_VERTEX_ONLY:
+    if args.video_input and backend == BACKEND_GEMINI_API:
         _error_exit(
             "--video-input (Scene Extension v2) is not available on the "
-            "Gemini API surface this plugin uses. The API rejects the video "
-            "inlineData part with 'inlineData isn't supported by this "
-            "model'. It is currently reachable only via Vertex AI. For clip "
-            "extension, use `video_extend.py --method keyframe` which "
-            "extracts the last frame and uses it as the first-frame seed "
-            "for the next hop (no audio continuity, but works today). "
-            "Vertex AI backend is tracked as a v3.6.0 roadmap item."
+            "Gemini API backend. The API rejects the video inlineData part "
+            "with 'inlineData isn't supported by this model'. Use "
+            "--backend auto (default) or --backend vertex-ai to route this "
+            "through Vertex AI, which v3.6.0 fully supports."
         )
     if args.video_input:
         conflicting = []
@@ -527,18 +835,55 @@ def main():
                 "to": "720p"
             })
             args.resolution = "720p"
+        # Vertex AI Scene Extension v2 has a hard durationSeconds=7 constraint.
+        # Auto-override from the standard {4,6,8} default so users don't have
+        # to think about this. Matches the pattern of the 720p auto-downgrade
+        # above: the user probably just kept the default.
+        if backend == BACKEND_VERTEX_AI and args.duration != VIDEO_EXTENSION_FIXED_DURATION:
+            _progress({
+                "status": "duration_overridden",
+                "reason": "Scene Extension v2 requires durationSeconds=7",
+                "from": args.duration,
+                "to": VIDEO_EXTENSION_FIXED_DURATION,
+            })
+            args.duration = VIDEO_EXTENSION_FIXED_DURATION
 
-    api_key = _load_api_key(args.api_key)
+    # Load credentials for whichever backend we're going to use.
+    # The Gemini API path uses the existing google_ai_api_key; the Vertex
+    # path uses vertex_api_key + vertex_project_id + vertex_location.
+    api_key = None
+    vertex_creds = None
+    if backend == BACKEND_GEMINI_API:
+        api_key = _load_api_key(args.api_key)
+    else:
+        try:
+            vertex_creds = vertex.load_vertex_credentials(
+                cli_api_key=args.vertex_api_key,
+                cli_project=args.vertex_project,
+                cli_location=args.vertex_location,
+            )
+        except vertex.VertexAuthError as e:
+            _error_exit(str(e))
+        _progress({
+            "status": "backend_selected",
+            "backend": BACKEND_VERTEX_AI,
+            "project": vertex_creds["project_id"],
+            "location": vertex_creds["location"],
+        })
+
     gen_start = time.time()
 
-    # Step 1: Submit
-    operation_name = _submit_operation(
+    # Submit + Poll loop. The Vertex path may return a transient
+    # "service_agent_provisioning" result on the first Scene Extension v2
+    # call against a cold project; we catch that and retry once after a
+    # 90-second sleep. Gemini API path returns a raw response dict and
+    # never hits this case.
+    submit_kwargs = dict(
         prompt=args.prompt,
         model=args.model,
         duration=args.duration,
         ratio=args.aspect_ratio,
         resolution=args.resolution,
-        api_key=api_key,
         first_frame=args.first_frame,
         last_frame=args.last_frame,
         ref_images=args.reference_image,
@@ -546,15 +891,60 @@ def main():
         seed=args.seed,
         video_input=args.video_input,
     )
+    if backend == BACKEND_GEMINI_API:
+        submit_kwargs["api_key"] = api_key
 
-    # Step 2: Poll
-    response = _poll_operation(operation_name, api_key, args.poll_interval, args.max_wait)
+    service_agent_retries_left = 1
+    while True:
+        operation_name = _submit_operation(
+            backend=backend,
+            vertex_creds=vertex_creds,
+            **submit_kwargs,
+        )
+        poll_result = _poll_operation(
+            backend=backend,
+            operation_name=operation_name,
+            api_key=api_key,
+            vertex_creds=vertex_creds,
+            model=args.model,
+            interval=args.poll_interval,
+            max_wait=args.max_wait,
+        )
 
-    # Step 3: Save
-    video_path = _save_video(response, args.output, api_key)
+        if (backend == BACKEND_VERTEX_AI
+                and isinstance(poll_result, tuple)
+                and poll_result[0] == "service_agent_provisioning"):
+            if service_agent_retries_left <= 0:
+                err = poll_result[1]
+                msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
+                _error_exit(
+                    f"Vertex service agents still not provisioned after retry. "
+                    f"Original message: {msg}. "
+                    f"See https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents"
+                )
+            service_agent_retries_left -= 1
+            _progress({
+                "status": "service_agent_provisioning",
+                "action": "retrying",
+                "sleep_seconds": SERVICE_AGENT_RETRY_SECONDS,
+                "note": (
+                    "First Scene Extension v2 call on this Vertex project. "
+                    "Google is auto-provisioning service agents; retrying once."
+                ),
+            })
+            time.sleep(SERVICE_AGENT_RETRY_SECONDS)
+            continue
+
+        break
+
+    video_path = _save_video(
+        backend=backend,
+        poll_result=poll_result,
+        output_dir=args.output,
+        api_key=api_key,
+    )
     gen_time = round(time.time() - gen_start, 1)
 
-    expires_at = (datetime.now(timezone.utc) + timedelta(hours=DOWNLOAD_RETENTION_HOURS)).isoformat()
     result = {
         "path": video_path,
         "model": args.model,
@@ -563,8 +953,18 @@ def main():
         "resolution": args.resolution,
         "prompt": args.prompt,
         "generation_time_seconds": gen_time,
-        "download_expires_at": expires_at,
+        "backend": backend,
     }
+    # The 48-hour download expiry only applies to the Gemini API path,
+    # which returns a URI the plugin downloads (we already have the bytes
+    # locally after _save_video, but users who keep manifests around might
+    # try to re-fetch the URI later). Vertex returns video bytes inline
+    # in the poll response — no URI, no expiry.
+    if backend == BACKEND_GEMINI_API:
+        result["download_expires_at"] = (
+            datetime.now(timezone.utc) + timedelta(hours=DOWNLOAD_RETENTION_HOURS)
+        ).isoformat()
+
     if args.first_frame:
         result["first_frame"] = args.first_frame
     if args.last_frame:
@@ -573,11 +973,12 @@ def main():
         result["video_input"] = args.video_input
 
     print(json.dumps(result, indent=2))
-    print(
-        f"Note: The source download URI expires in {DOWNLOAD_RETENTION_HOURS} hours. "
-        f"The MP4 has been saved to disk at {video_path}.",
-        file=sys.stderr,
-    )
+    if backend == BACKEND_GEMINI_API:
+        print(
+            f"Note: The source download URI expires in {DOWNLOAD_RETENTION_HOURS} hours. "
+            f"The MP4 has been saved to disk at {video_path}.",
+            file=sys.stderr,
+        )
 
 
 if __name__ == "__main__":
