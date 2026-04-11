@@ -649,8 +649,9 @@ nano-banana-studio/                    # Claude Code Plugin
 ├── skills/video/                      # Video generation skill (VEO 3.1)
 │   ├── SKILL.md                       # Video Creative Director orchestrator
 │   ├── scripts/
-│   │   ├── video_generate.py          # Async VEO API with polling
-│   │   ├── video_sequence.py          # Multi-shot sequence production pipeline
+│   │   ├── video_generate.py          # Async VEO API with polling, --backend routing
+│   │   ├── _vertex_backend.py         # Vertex AI helper (v3.6.0) — URL composer, request body builder, response parser, --diagnose CLI
+│   │   ├── video_sequence.py          # Multi-shot sequence production pipeline + review gate (v3.6.2/3.6.3)
 │   │   ├── video_extend.py            # Clip extension to 148s via chaining
 │   │   └── video_stitch.py            # FFmpeg concat/trim/convert/info
 │   └── references/
