@@ -286,6 +286,8 @@ def build_vertex_request_body(
     aspect_ratio,
     resolution,
     image_path=None,
+    last_frame_path=None,
+    reference_image_paths=None,
     video_input_path=None,
     negative_prompt=None,
     seed=None,
@@ -293,16 +295,34 @@ def build_vertex_request_body(
 ):
     """Build the JSON dict to serialize for :predictLongRunning.
 
-    Validation done at the boundary (before returning) to prevent known-bad
-    requests from ever reaching the wire:
+    Input modes (set by which of the four path arguments are non-None):
+
+      - Text-to-video: all None
+      - Image-to-video: image_path only
+      - First-and-last-frame interpolation: image_path + last_frame_path
+      - Reference-image-guided: reference_image_paths (up to 3)
+      - Scene Extension v2: video_input_path only
+
+    Mutual exclusions:
+      - video_input_path cannot combine with ANY image input
+      - last_frame_path requires image_path (lastFrame is always paired with image)
+      - reference_image_paths cannot combine with image_path or last_frame_path
+        (per Vertex docs: reference images and first/last frame are separate modes)
+
+    Validation done at the boundary to prevent known-bad requests:
 
     - aspect_ratio must be in {"16:9", "9:16"} — v3.5.0 Lite 1:1 claim was wrong
     - resolution is normalized to lowercase (4K → 4k)
     - video_input_path forces Scene Extension v2 mode, which requires
-      durationSeconds=7 (enforced by API). We don't auto-override here —
-      the caller is expected to have already adjusted duration. Raise if
-      it's wrong so the bug surfaces immediately, not at submission time.
-    - image_path and video_input_path are mutually exclusive.
+      durationSeconds=7 (enforced by API).
+    - reference_image_paths is capped at 3 entries per the Vertex docs.
+
+    Per Vertex docs (https://docs.cloud.google.com/vertex-ai/generative-ai/docs/
+    video/generate-videos-from-first-and-last-frames), first+last frame mode
+    supports veo-3.1-generate-preview, -fast-generate-preview, -generate-001,
+    -fast-generate-001, and -lite-generate-001. All five plugin-registered
+    VEO 3.1 model IDs are covered; veo-3.0-generate-001 is NOT supported for
+    this feature. The caller is responsible for model-specific routing.
     """
     if aspect_ratio not in VALID_ASPECT_RATIOS:
         raise VertexBackendError(
@@ -316,11 +336,27 @@ def build_vertex_request_body(
     # so the rest of the plugin can keep its uppercase convention.
     resolution_normalized = RESOLUTION_NORMALIZATION.get(resolution, resolution)
 
-    if image_path and video_input_path:
+    # Mutual-exclusion checks.
+    if video_input_path and (image_path or last_frame_path or reference_image_paths):
         raise VertexBackendError(
-            "image_path and video_input_path are mutually exclusive. "
-            "Scene Extension v2 (video input) cannot be combined with "
-            "image-to-video (first/last frame)."
+            "video_input_path is mutually exclusive with image/last_frame/"
+            "reference inputs. Scene Extension v2 takes the source video alone."
+        )
+    if last_frame_path and not image_path:
+        raise VertexBackendError(
+            "last_frame_path requires image_path. First/last frame "
+            "interpolation uses both frames to constrain the generation."
+        )
+    if reference_image_paths and (image_path or last_frame_path):
+        raise VertexBackendError(
+            "reference_image_paths is mutually exclusive with image_path and "
+            "last_frame_path. Reference images guide content/style while "
+            "first/last frame pins the generation's endpoints — the two "
+            "modes use different Vertex code paths."
+        )
+    if reference_image_paths and len(reference_image_paths) > 3:
+        raise VertexBackendError(
+            f"Maximum 3 reference images allowed, got {len(reference_image_paths)}."
         )
 
     if video_input_path and duration != VIDEO_EXTENSION_FIXED_DURATION:
@@ -339,6 +375,32 @@ def build_vertex_request_body(
             "bytesBase64Encoded": img_b64,
             "mimeType": img_mime,
         }
+        # `lastFrame` is a sibling of `image` at the instance level. Field
+        # name is literal camelCase (confirmed from both the Vertex and
+        # Gemini API REST reference pages on 2026-04-11).
+        if last_frame_path:
+            last_b64, last_mime = _read_image_base64(last_frame_path)
+            instance["lastFrame"] = {
+                "bytesBase64Encoded": last_b64,
+                "mimeType": last_mime,
+            }
+    elif reference_image_paths:
+        # `referenceImages` is an array of {image, referenceType} objects
+        # at the instance level. Each image uses the same bytesBase64Encoded
+        # wrapper as the primary `image` field. referenceType is "asset"
+        # per the official Google Veo 3 notebook and the Gemini API docs
+        # (both sources confirmed on 2026-04-11).
+        ref_list = []
+        for ref_path in reference_image_paths:
+            ref_b64, ref_mime = _read_image_base64(ref_path)
+            ref_list.append({
+                "image": {
+                    "bytesBase64Encoded": ref_b64,
+                    "mimeType": ref_mime,
+                },
+                "referenceType": "asset",
+            })
+        instance["referenceImages"] = ref_list
     elif video_input_path:
         vid_b64, vid_mime = _read_video_base64(video_input_path)
         instance["video"] = {

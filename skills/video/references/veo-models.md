@@ -139,8 +139,8 @@ Lite as a $1.60 review pass before committing to the final render.
 | 4K output | ✅ (AI upscale) | ✅ (AI upscale) | ❌ | ❌ |
 | Text-to-video | ✅ both backends | ✅ both backends | ✅ Vertex | ✅ Vertex |
 | Image-to-video (`--first-frame`) | ✅ Vertex | ✅ Vertex | ✅ Vertex | ✅ Vertex |
-| Reference images (up to 3) | planned v3.6.1 | planned v3.6.1 | planned v3.6.1 | planned v3.6.1 |
-| First+last frame interpolation | planned v3.6.1 | planned v3.6.1 | planned v3.6.1 | planned v3.6.1 |
+| First+last frame interpolation | ✅ Vertex (v3.6.1+) | ✅ Vertex (v3.6.1+) | ✅ Vertex (v3.6.1+) | ❌ (not supported by model) |
+| Reference images (up to 3) | ✅ Vertex (v3.6.1+) | ✅ Vertex (v3.6.1+) | ❌ (not supported by model) | ❌ |
 | Scene Extension v2 (video input) | ✅ Vertex (720p, 7 s) | ✅ Vertex (720p, 7 s) | ✅ Vertex (720p, 7 s) | ✅ Vertex (720p, 7 s) |
 | Native audio | ✅ 192 kbps | ✅ (lower) | ✅ (lower) | ✅ |
 | Object insertion | planned | planned | planned | — |

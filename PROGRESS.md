@@ -7,7 +7,7 @@
 
 - **Repo:** https://github.com/juliandickie/nano-banana-studio
 - **Origin:** https://github.com/AgriciDaniel/banana-claude (forked at v1.4.1, detached at v2.1.0)
-- **Current version:** 3.6.0
+- **Current version:** 3.6.1
 - **Local path:** `/Users/juliandickie/code/nano-banana-pro/banana-claude/`
 - **Plugin layout:** `.claude-plugin/` + `skills/banana/` (image) + `skills/video/` (video) + `agents/`
 
@@ -213,6 +213,22 @@ Both keys stored in `~/.banana/config.json`. Scripts check: CLI flag → env var
 **Critical files modified:** `video_generate.py` (+484 / -83), `video_sequence.py`, `video_extend.py`, `veo-models.md`, `video-sequences.md`, `SKILL.md`, `README.md`, `CHANGELOG.md`, `ROADMAP.md`, `CLAUDE.md`, `PROGRESS.md`, `plugin.json`, `CITATION.cff`
 
 **Total v3.6.0 spend:** ~$0.95 ($0.75 research + $0.20 commit 2 smoke test). Coffee shop demo at Lite draft pending after release (~$1.60).
+
+### Session 9 (2026-04-11, same day as v3.6.0)
+**Scope:** v3.6.1 — First+last frame interpolation and reference images on the Vertex AI backend
+
+1. **Root cause for the same-day bump:** v3.6.0's commit 2 `_submit_vertex_ai` hard-coded `_error_exit()` stubs for `last_frame` and `ref_images` because the Vertex field names weren't empirically verified. The coffee shop demo cannot run end-to-end without `--last-frame` support (shots 2/3/4 all use both storyboard frames).
+2. **New docs read:** the [Vertex first/last frame reference](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/video/generate-videos-from-first-and-last-frames) and the [Gemini API video guide](https://ai.google.dev/gemini-api/docs/video). Both confirm the Vertex field names: `lastFrame` (sibling of `image` at the instance level, camelCase) and `referenceImages` (array of `{image, referenceType: "asset"}` entries). No probe needed.
+3. **Code changes** (~90 lines net):
+   - `_vertex_backend.build_vertex_request_body`: added `last_frame_path` and `reference_image_paths` keyword arguments. New mutual-exclusion checks: video_input vs image/last/ref, last_frame requires image, reference_images vs image/last, max 3 reference images.
+   - `video_generate._submit_vertex_ai`: removed the two `_error_exit` stubs and forwarded the new parameters through to `build_vertex_request_body`.
+4. **Unit tests:** 8 new checks covering first+last frame, last_frame-without-image rejection, reference images up to 3, max-3 enforcement, and all the new mutual exclusions. The original 18 commit-1 checks still pass.
+5. **Real-API smoke test ($0.20):** Lite first+last frame on coffee shop Shot 2 storyboard frames. 42s wall clock, real 2.27 MB MP4 saved to `/tmp/v361-smoke/`. Proves the full wire-up end-to-end through `video_generate.py`.
+6. **Docs and version bump:** `CHANGELOG.md` `[3.6.1]` section, `README.md` "What's New" entry above the v3.6.0 section, version bump in `plugin.json`, `README` badge, `CITATION.cff`, `PROGRESS.md`.
+
+**Why same-day release:** v3.6.0's deferred-to-v3.6.1 errors blocked the coffee shop demo. Rather than run the demo with a degraded Option A (first-frame only, dropping end-frame guidance), the user chose Option C: fix the code first. The Google docs had the exact field names; all it took was implementation + verification.
+
+**Total v3.6.1 spend:** $0.20 (first+last frame smoke test).
 
 ## Expansion Roadmap
 

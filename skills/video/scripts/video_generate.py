@@ -376,29 +376,15 @@ def _submit_vertex_ai(prompt, model, duration, ratio, resolution,
     helper module handles URL composition, request body validation,
     resolution normalization (4K → 4k), and submit response parsing.
 
-    Reference images (`ref_images`) are currently only supported on the
-    Gemini API code path. Vertex AI Veo does accept reference images but
-    under a different schema name — deferred to v3.6.1.
-    """
-    if ref_images:
-        _error_exit(
-            "--reference-image is not yet supported on the Vertex AI backend. "
-            "This is a v3.6.1 scope item. For now, use --first-frame or "
-            "--last-frame to guide generation, or force "
-            "--backend gemini-api (which accepts reference-images but only "
-            "for text-to-video on preview model IDs)."
-        )
-    if last_frame:
-        # Vertex AI Veo 3.1 supports first-frame image-to-video and
-        # last-frame interpolation, but the latter uses a different
-        # request field that we haven't probed empirically. Defer to v3.6.1.
-        _error_exit(
-            "--last-frame is not yet supported on the Vertex AI backend. "
-            "First/last frame interpolation is a v3.6.1 scope item. "
-            "Use --first-frame alone for now, or force "
-            "--backend gemini-api for the legacy last-frame path."
-        )
+    v3.6.1: `last_frame` and `ref_images` support added. Field names
+    (`lastFrame`, `referenceImages`) confirmed from both the Vertex AI
+    REST reference and the Gemini API docs on 2026-04-11.
 
+    Legacy 3.0 (`veo-3.0-generate-001`) does NOT support first+last
+    frame interpolation per Vertex docs — this function lets the request
+    through and relies on the API to reject it with a clear error. If
+    that error rate becomes annoying, we can add a client-side gate.
+    """
     try:
         body = vertex.build_vertex_request_body(
             prompt,
@@ -406,6 +392,8 @@ def _submit_vertex_ai(prompt, model, duration, ratio, resolution,
             aspect_ratio=ratio,
             resolution=resolution,
             image_path=first_frame,
+            last_frame_path=last_frame,
+            reference_image_paths=ref_images,
             video_input_path=video_input,
             negative_prompt=negative_prompt,
             seed=seed,

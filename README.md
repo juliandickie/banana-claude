@@ -10,7 +10,7 @@ AI image and video generation plugin for Claude Code where **Claude acts as Crea
 Unlike simple API wrappers, Claude interprets your intent, selects domain expertise, constructs optimized prompts, and orchestrates generation for the best possible results — for both still images and video clips with synchronized audio.
 
 [![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-blue)](https://claude.ai/claude-code)
-[![Version](https://img.shields.io/badge/version-3.6.0-coral)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.6.1-coral)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Origin](https://img.shields.io/badge/origin-AgriciDaniel%2Fbanana--claude-gray)](https://github.com/AgriciDaniel/banana-claude)
 
@@ -38,6 +38,12 @@ Unlike simple API wrappers, Claude interprets your intent, selects domain expert
 ## Features
 
 Built on [AgriciDaniel/banana-claude](https://github.com/AgriciDaniel/banana-claude), extended with features driven by production use and research analysis of Google's prompting guidance:
+
+### First+Last Frame Interpolation + Reference Images on Vertex (v3.6.1)
+
+v3.6.1 is a same-day follow-up to v3.6.0 that finishes the Vertex backend work. v3.6.0 shipped `--first-frame` support but deferred `--last-frame` and `--reference-image` because the Vertex field names (`lastFrame`, `referenceImages`) weren't empirically verified. Two authoritative Google doc pages confirmed the exact field names, so v3.6.1 wires them into `_vertex_backend.build_vertex_request_body` with 8 new unit tests and an empirical real-API smoke test ($0.20 Lite first+last frame on a coffee shop storyboard shot).
+
+**What this unlocks:** the coffee shop demo plan has all 4 shots with both `start_frame_prompt` and `end_frame_prompt` populated. As of v3.6.1, the draft-then-final workflow can honor the storyboard end frames for every shot — not just Shot 1.
 
 ### Vertex AI Backend — Lite, image-to-video, Scene Ext v2 (v3.6.0)
 

@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.1] - 2026-04-11
+
+### Headline
+
+**First+last frame interpolation and reference images now work on the Vertex AI backend.** v3.6.0 shipped the Vertex backend with `--first-frame` support but deferred `--last-frame` and `--reference-image` to v3.6.1 because the field names weren't empirically verified. Two authoritative Google doc pages published in the [Vertex first/last frame reference](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/video/generate-videos-from-first-and-last-frames) and the [Gemini API video guide](https://ai.google.dev/gemini-api/docs/video) confirmed the field names as `lastFrame` (camelCase, nested at the instance level alongside `image`) and `referenceImages` (an array of `{image, referenceType: "asset"}` entries). Wiring them in took ~40 lines in `_vertex_backend.build_vertex_request_body` plus removing the `_error_exit` stubs in `_submit_vertex_ai`. Verified end-to-end with a Lite first+last frame smoke test ($0.20) using coffee shop Shot 2's storyboard frames — real 2.27 MB MP4 produced in 42 seconds.
+
+### Added
+- **`last_frame_path` parameter** on `_vertex_backend.build_vertex_request_body`. Builds the `lastFrame` field as a sibling of `image` at the instance level with `bytesBase64Encoded` + `mimeType`. Same camelCase field name used by both the Vertex AI REST reference and the Gemini API docs.
+- **`reference_image_paths` parameter** on `_vertex_backend.build_vertex_request_body`. Builds the `referenceImages` array (up to 3 entries) with each entry as `{image: {bytesBase64Encoded, mimeType}, referenceType: "asset"}`. Matches the structure shown in the official Google Veo 3 notebook and the Gemini API bash curl example.
+- **Four new mutual-exclusion checks** in `build_vertex_request_body`: (1) `video_input` cannot combine with any image inputs, (2) `last_frame` requires `image` (since `lastFrame` is always paired), (3) `reference_images` cannot combine with `image` or `last_frame` (separate Vertex code paths), (4) `reference_images` capped at 3 entries.
+
+### Fixed
+- **`--last-frame` on the Vertex AI backend** — v3.6.0 raised `_error_exit("--last-frame is not yet supported on the Vertex AI backend")`. v3.6.1 lets it through to the wire. Works for all five VEO 3.1 model IDs (Standard/Fast/Lite, both preview and GA `-001`). VEO 3.0 does not support first+last frame per Vertex docs; the API will reject it with a clear error if a user tries.
+- **`--reference-image` on the Vertex AI backend** — same deferred-error was removed. Vertex supports reference images for all VEO 3.1 tiers except Lite per Google's parameter table; Lite requests with reference images will be rejected by the API.
+
+### Docs
+- **`_vertex_backend.py` docstring** on `build_vertex_request_body` rewritten with the full list of input modes (text-to-video, image-to-video, first+last interpolation, reference-guided, Scene Extension v2) and their mutual exclusions.
+- **`_submit_vertex_ai` docstring** updated to note the v3.6.1 additions and link to the source docs.
+
+### Verification
+- 8 new unit checks on `build_vertex_request_body` covering last_frame, reference_images, and all 4 new mutual-exclusion rules. The original 18 commit-1 checks still pass.
+- Real API ($0.20): Lite first+last frame on coffee shop Shot 2 storyboard frames, 42s wall clock, 2.27 MB MP4 saved to `/tmp/v361-smoke/`.
+
 ## [3.6.0] - 2026-04-11
 
 ### Headline
