@@ -75,53 +75,19 @@ The first non-VEO audio capability — solves the multi-clip music seam problem 
 
 ### Review Gate Enforcement + Smarter Plans (v3.6.3)
 
-Five more deferred-bucket items — the theme is "make the review gate actually useful and pre-fill shots with cinematography defaults so Claude has less to remember."
-
-- **Review gate is now mandatory** — `video_sequence.py generate` refuses to run unless a valid `REVIEW-SHEET.md` exists in the storyboard directory AND its embedded frame SHA-256 hashes match the current storyboard state. Pass `--skip-review` to bypass for CI. The gate catches the most expensive category of mistake: generating a $12 Standard clip against a frame that was silently regenerated after the review was written.
-- **Plan hash tracking** — the review sheet now embeds a machine-readable manifest block (wrapped in HTML comments so it doesn't render in markdown previews) containing per-shot frame hashes. `generate` recomputes the hashes on every run and compares against the recorded values; mismatches produce a clear "stale review" error listing the drifted shot numbers.
-- **Shot-type semantic defaults** — `plan --shot-types establishing,medium,closeup,product` pre-fills duration, camera hints, and `use_veo_interpolation` from a built-in 8-type table. Establishing/transition/cutaway/broll default to first-frame-only (`use_veo_interpolation=true`); content/medium/closeup/product default to first+last frame interpolation. Claude can override any field after generation.
-- **1080p Lite empirically verified** as callable via the Vertex AI backend. Previous doc only listed the $0.05/sec rate for 720p; v3.6.3 removes the "720p only" caveat from `cost_tracker.py` with an honest note that 1080p billing may differ until a full cycle closes.
-- **`--reference-image` flag on banana `generate.py`** — up to 3 reference images passed as `inlineData` parts alongside the text prompt. Enables cross-shot character/product continuity: regenerate a fresh frame that matches a previous storyboard frame's character without locking the composition (which is what `edit.py` does). Different enough from `edit.py` to justify the new flag, same enough that both share the `_read_reference_image` helper.
+Mandatory review gate before any VEO generation call — `video_sequence.py generate` refuses to run unless a valid `REVIEW-SHEET.md` exists with matching frame hashes, catching the expensive failure mode of generating a $12 clip against a silently-regenerated frame. Plus shot-type semantic defaults (`plan --shot-types establishing,medium,closeup`) that pre-fill duration, camera hints, and interpolation behaviour from an 8-type table, and a new `--reference-image` flag on banana image generation for cross-shot character continuity.
 
 ### Sequence Production Polish (v3.6.2)
 
-Five small-but-high-value improvements surfaced by the coffee shop demo. All zero-cost-to-verify (no new VEO calls):
-
-- **`video_sequence.py review` subcommand** — generates `REVIEW-SHEET.md` from a plan + storyboard directory. Each shot block shows the frames inline, the full VEO prompt, the resolved model + cost for the selected `--quality-tier`, and a ✅/⚠️ status badge. Sequence totals and any gaps blocking `generate` appear in the footer. Pure markdown, regenerated on demand, opens in Quick Look. The human approval gate between `storyboard` and `generate`.
-- **5-stage pipeline** (docs rename) — `plan → storyboard → **review** → generate → stitch`. The review stage is now first-class.
-- **`use_veo_interpolation: true` per-shot flag** — shots that cut away to unrelated material (e.g. the coffee shop demo's Shot 1) can set this in plan.json to skip the end frame. The storyboard stage saves $0.08/frame and the generate stage drops `--last-frame`, letting VEO compose its own ending. Empirically validated by Shot 1 of the coffee shop demo last night.
-- **`video_sequence.py storyboard --shots 1,3-5`** — partial regeneration. When one frame needs a redo but the rest are approved, regenerate only the subset instead of paying for the whole storyboard again.
-- **Default output location `~/Documents/nano-banana-sequences/`** — replaces the hidden `/tmp` default. Visible from Finder, works with Quick Look, per-project subdirs (`~/Documents/nano-banana-sequences/<project-slug>/`). The legacy `~/Documents/nanobanana_generated/` path from v3.4.x–v3.6.1 still works for old plans.
+Five production-polish items from the first real sequence shoot: new `review` subcommand that renders a human-approvable `REVIEW-SHEET.md` with inline frames, prompts, costs and status badges; `use_veo_interpolation` per-shot flag for cut-away shots that should skip the end frame; partial storyboard regeneration via `--shots 1,3-5`; and a new default output location under `~/Documents/nano-banana-sequences/` so sequences are Finder-visible.
 
 ### First+Last Frame Interpolation + Reference Images on Vertex (v3.6.1)
 
-v3.6.1 is a same-day follow-up to v3.6.0 that finishes the Vertex backend work. v3.6.0 shipped `--first-frame` support but deferred `--last-frame` and `--reference-image` because the Vertex field names (`lastFrame`, `referenceImages`) weren't empirically verified. Two authoritative Google doc pages confirmed the exact field names, so v3.6.1 wires them into `_vertex_backend.build_vertex_request_body` with 8 new unit tests and an empirical real-API smoke test ($0.20 Lite first+last frame on a coffee shop storyboard shot).
-
-**What this unlocks:** the coffee shop demo plan has all 4 shots with both `start_frame_prompt` and `end_frame_prompt` populated. As of v3.6.1, the draft-then-final workflow can honor the storyboard end frames for every shot — not just Shot 1.
+Same-day follow-up to v3.6.0 that wires `--last-frame` and `--reference-image` into the Vertex backend after verifying the exact field names against Google's docs. The draft-then-final sequence workflow can now honour storyboard end frames on every shot, not just the first.
 
 ### Vertex AI Backend — Lite, image-to-video, Scene Ext v2 (v3.6.0)
 
-**The full VEO 3.1 capability surface is now reachable through the
-plugin.** v3.6.0 ships a Vertex AI backend that uses API-key
-authentication (no OAuth, no service account JSON, no `gcloud` install)
-to call models and features the Gemini API surface refused to serve
-in v3.5.0:
-
-- **VEO 3.1 Lite** (`veo-3.1-lite-generate-001`, $0.05/sec) — the cheapest tier, finally callable. `--quality-tier draft` in `video_sequence.py` now maps to Lite, restoring the **8× cost reduction** for the draft-then-final workflow (was 2.7× in v3.5.0's Fast-stopgap).
-- **Image-to-video** — `--first-frame` works again. The Gemini API surface stopped serving image-to-video for VEO when the GA `-001` IDs shipped on Vertex; v3.6.0 routes these calls through Vertex automatically.
-- **Scene Extension v2** — `video_generate.py --video-input` and `video_extend.py --method video` are back as the defaults, with the Vertex-mandated `durationSeconds=7` constraint auto-enforced.
-- **GA `-001` model IDs** — `veo-3.1-generate-001`, `veo-3.1-fast-generate-001`, `veo-3.1-lite-generate-001`, `veo-3.0-generate-001` all callable.
-
-**New CLI flag**: `video_generate.py --backend {auto,gemini-api,vertex-ai}`. Default `auto` routes Vertex-only features through Vertex automatically and keeps text-to-video on the Gemini API path for v3.4.x compat. **Zero breaking changes** for existing users — text-to-video on Standard or Fast preview continues to work without any new credentials.
-
-**Setup** (3 minutes, one-time): create a [bound-to-service-account API key](https://console.cloud.google.com/apis/credentials) on a Vertex-AI-enabled GCP project, add `vertex_api_key` + `vertex_project_id` + `vertex_location` to `~/.banana/config.json`. See [`skills/video/references/veo-models.md`](skills/video/references/veo-models.md) → Backend Availability for the walkthrough.
-
-**Doc corrections** (real-API testing surfaced these mistakes in v3.5.0):
-- Lite duration is `{4, 6, 8}` — same as Standard/Fast. v3.5.0 said 5–60s based on unverified docs.
-- Aspect ratio is `16:9` or `9:16` only — no `1:1`. v3.5.0 wrongly claimed Lite supported 1:1.
-- Scene Extension v2 requires `durationSeconds=7` — single fixed value, automatically enforced.
-
-**New helper script**: [`skills/video/scripts/_vertex_backend.py`](skills/video/scripts/_vertex_backend.py) — pure data translation layer between the Gemini API request shape and the Vertex `instances`/`parameters` wrapper. Standalone testable. Has its own `--diagnose` CLI that runs a free Gemini text-gen sanity check against the same auth path to verify your setup without burning VEO budget.
+**The full VEO 3.1 capability surface, finally reachable.** A new Vertex AI backend using bound-to-service-account API-key auth (no OAuth, no service account JSON, no `gcloud`) unlocks VEO 3.1 Lite at $0.05/sec (the 8× cost cut for draft-then-final workflows), image-to-video via `--first-frame`, Scene Extension v2, and the GA `-001` model IDs — all the features the Gemini API surface stopped serving when the GA IDs shipped. New `--backend {auto,gemini-api,vertex-ai}` flag on `video_generate.py` with zero breaking changes for existing text-to-video users. 3-minute setup: add three fields to `~/.banana/config.json`.
 
 ### VEO 3.1 Model Variants & Draft Workflow (v3.5.0)
 

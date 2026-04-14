@@ -8,13 +8,30 @@ history, design decisions, and next steps.
 ## Third-party API reference (workspace-level)
 
 Full LLMS documentation for integrated and evaluated third-party APIs lives at
-`../dev-docs/` (workspace root, one level above this repo). This includes
-ElevenLabs, Google ADK (reference only — not adopted), and Replicate (OpenAPI
-schema + MCP server install guide). The files are large — most must be queried
-via Explore subagents rather than read directly. **See the workspace-root
-`CLAUDE.md` (`../CLAUDE.md`) for the current inventory and the when-to-consult
-table.** Single source of truth for the dev-docs catalog is the workspace file,
-not this one, to avoid duplication.
+`../dev-docs/` (workspace root, one level above this repo). **Always check
+`../CLAUDE.md`'s dev-docs inventory BEFORE** updating prompt-engineering
+references, answering model-capability questions, or planning an empirical
+spike — the authoritative answer is often already pinned locally.
+
+Specifically:
+- **`../dev-docs/nano-banana-image-generation.md`** is the official Google
+  Gemini 3.1 Flash Image prompting guide. Consult it before editing
+  `skills/banana/references/prompt-engineering.md` or making any claim about
+  Gemini 3.1 behaviour. Spike 6 in v3.7.3 would have been unnecessary if this
+  file had been read first — the "describe the scene, don't list keywords"
+  rule was already in the official guide.
+- **`../dev-docs/google-nano-banana-2-llms.md`** is the Replicate model card
+  confirming the Replicate `google/nano-banana-2` is the same
+  `gemini-3.1-flash-image-preview` model as the direct Gemini API path.
+- **`../dev-docs/elevenlabs-best-practices.md`** is the condensed ElevenLabs
+  prompt-engineering guide — consult before tuning narration tags or voice
+  design prompts.
+
+Other files in `dev-docs/` cover ElevenLabs (full API), Google ADK (reference
+only — not adopted), Replicate (OpenAPI schema + MCP server install guide),
+and ByteDance Seedance 2.0 (v3.8.0 bake-off candidate). Most are large — query
+via Explore subagent, not Read. **The full inventory and when-to-consult table
+is the single source of truth in `../CLAUDE.md`** — do not duplicate it here.
 
 ## What this repo is
 
@@ -179,8 +196,24 @@ SKILL.md no longer carries version -- `plugin.json` is the authoritative source.
 ### 3. README "What's New in This Fork" Check (IMPORTANT — frequently missed)
 
 If the feature is user-facing, it MUST appear in the README "What's New in This Fork" section.
-Each feature gets a `### Feature Name (vX.Y.Z)` heading with a brief description.
-Check: does the new feature have its own subsection in "What's New"? If not, add it.
+Each feature gets a `### Feature Name (vX.Y.Z)` heading.
+
+**CRITICAL — README subsections are sales copy, not changelog entries.** The README is the plugin's sales page. The job of a What's New subsection is to convince a prospective user that the feature is valuable in the time it takes to read 1–3 sentences. Detailed decision trees, bullet lists of every change, empirical findings, cost breakdowns, and implementation notes all belong in CHANGELOG.md / PROGRESS.md / ROADMAP.md — **not** in README.
+
+| Pattern | Belongs in |
+|---|---|
+| "Feature X lets you do Y so that Z." (1–3 sentences, ≤100 words) | README |
+| "Five more deferred-bucket items — the theme is..." followed by 5 bullets | CHANGELOG |
+| Empirical spike findings, file-size variance, cost tables | CHANGELOG + PROGRESS |
+| Setup walkthrough, config field names, CLI flag lists | Reference docs + CHANGELOG |
+| Internal rationale ("the coffee shop demo surfaced...") | PROGRESS |
+| "Why [decision]" / "What this unlocks" paragraphs | PROGRESS or the reference doc |
+
+**Target length:** match the style of the v2.x entries (`### Asset Registry (v1.8.0)`, `### Analytics Dashboard (v2.6.0)`, etc.) — 1–3 sentences, value-forward, no sub-bullets unless the feature genuinely ships multiple user-facing capabilities worth naming separately (e.g. v3.7.1 shipped both the audio pipeline AND custom voice design — two distinct value props, so two short paragraphs is OK).
+
+**Rule of thumb:** if a user would read the README subsection and think "that's the *news*, not a *summary*," it's too long. Cut it in half and move the details to CHANGELOG.
+
+**Retrospective correction:** v3.6.0–v3.6.3 README subsections were written as mini-changelogs with 5-7 bullets each and were slimmed to 1-3 sentences in v3.7.3. Do not regenerate that mistake on future releases — check this section before writing the What's New paragraph.
 
 ### 4. Command Sync Check (IMPORTANT — frequently missed)
 
