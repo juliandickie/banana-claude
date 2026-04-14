@@ -5,6 +5,17 @@ This file is read by Claude Code when working inside this repository.
 **Start every session by reading `PROGRESS.md`** -- it has full development
 history, design decisions, and next steps.
 
+## Third-party API reference (workspace-level)
+
+Full LLMS documentation for integrated and evaluated third-party APIs lives at
+`../dev-docs/` (workspace root, one level above this repo). This includes
+ElevenLabs, Google ADK (reference only — not adopted), and Replicate (OpenAPI
+schema + MCP server install guide). The files are large — most must be queried
+via Explore subagents rather than read directly. **See the workspace-root
+`CLAUDE.md` (`../CLAUDE.md`) for the current inventory and the when-to-consult
+table.** Single source of truth for the dev-docs catalog is the workspace file,
+not this one, to avoid duplication.
+
 ## What this repo is
 
 `nano-banana-studio` is a Claude Code **plugin** that enables AI image generation
