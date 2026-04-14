@@ -30,9 +30,9 @@ argument-hint: "[generate|animate|sequence|extend|stitch|cost|status] <idea, pat
 | `/video sequence stitch --clips DIR --output PATH` | Assemble clips into final sequence |
 | `/video extend <clip> [--to Ns]` | Extend a clip (+7s per hop, max 148s) |
 | `/video stitch <clips...>` | Concatenate arbitrary clips via FFmpeg |
-| `/video audio pipeline --video V --text "..." --music-prompt "..."` | **v3.7.1** end-to-end: parallel TTS + music, mix, swap into video |
+| `/video audio pipeline --video V --text "..." --music-prompt "..." [--music-source lyria\|elevenlabs]` | **v3.7.1+v3.7.2** end-to-end: parallel TTS + music (Lyria default, ElevenLabs alt), mix, swap into video |
 | `/video audio narrate --text "..." [--voice ROLE]` | **v3.7.1** generate ElevenLabs TTS narration only |
-| `/video audio music --prompt "..." [--length-ms N]` | **v3.7.1** generate Eleven Music background bed only |
+| `/video audio music --prompt "..." [--source lyria\|elevenlabs] [--negative-prompt "..."]` | **v3.7.2** generate background music — Lyria 2 default ($0.06/clip), ElevenLabs alternative |
 | `/video audio mix --narration N --music M` | **v3.7.1** mix existing narration + music with side-chain ducking |
 | `/video audio swap --video V --audio A` | **v3.7.1** swap an audio file into a video (lossless video) |
 | `/video voice design --description "..."` | **v3.7.1** generate 3 voice previews from a text description |
@@ -198,16 +198,18 @@ VEO 3.1 generates synchronized audio. Include in every prompt:
 
 See `references/video-audio.md` for VEO-native audio prompting and the 12 empirical findings from the strategic reset spikes.
 
-## v3.7.1 Audio Replacement Pipeline (for multi-clip sequences)
+## v3.7.1+v3.7.2 Audio Replacement Pipeline (for multi-clip sequences)
 
-**When to use:** the user is producing a multi-clip stitched sequence and (a) wants narration over visible characters, OR (b) wants a continuous music bed without seams at clip boundaries, OR (c) wants a custom-designed branded narrator voice instead of VEO's emergent voice.
+**When to use:** the user is producing a multi-clip stitched sequence and (a) wants narration over visible characters, OR (b) wants a continuous music bed without seams at clip boundaries, OR (c) wants a custom-designed branded narrator voice instead of VEO's emergent voice, OR (d) wants higher-fidelity music than VEO's emergent bed (Lyria 2 is 48kHz/192kbps stereo).
 
-**What it does:** strips the VEO video's audio entirely and replaces it with continuous ElevenLabs TTS narration + Eleven Music background bed + FFmpeg ducked mix. The TTS and music API calls run in parallel for ~12s total latency.
+**What it does:** strips the VEO video's audio entirely and replaces it with continuous ElevenLabs TTS narration + background music (**Google Lyria 2 by default** as of v3.7.2, ElevenLabs Music as the alternative) + FFmpeg ducked mix. The TTS and music API calls run in parallel for ~12s total latency.
+
+**Music source choice (v3.7.2):** Lyria is the default after winning the 5-way bake-off in spike 4 (Lyria > ElevenLabs > MusicGen > MiniMax > Stable Audio per user listening verdict). Use `--music-source elevenlabs` to opt into the alternative when you need custom durations >32.768s, prefer ElevenLabs's character for a specific genre, or want subscription-billed cost on the Creator tier. See `references/audio-pipeline.md` for the full decision matrix.
 
 **Canonical command:**
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/elevenlabs_audio.py pipeline \
+python3 ${CLAUDE_SKILL_DIR}/scripts/audio_pipeline.py pipeline \
   --video stitched-sequence.mp4 \
   --text "Each year... the seasons change across this valley, painting the forest in red and gold. [exhales] The river runs COLD here..." \
   --music-prompt "Cinematic nature documentary background score, slow contemplative warm orchestral strings with soft piano, instrumental only, no vocals, around 70 BPM" \
@@ -227,7 +229,7 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/elevenlabs_audio.py pipeline \
 - Default: `--voice narrator` reads the saved `custom_voices.narrator` from `~/.banana/config.json`.
 - To use a different role: `--voice character_a` (reads `custom_voices.character_a`).
 - To use a literal ElevenLabs voice ID: `--voice 21m00Tcm4TlvDq8ikWAM` (any non-role string is treated as a literal ID).
-- To create a new custom voice: `voice-design` then `voice-promote`. See `references/elevenlabs-audio.md`.
+- To create a new custom voice: `voice-design` then `voice-promote`. See `references/audio-pipeline.md`.
 
 **Music prompt restriction (TOS guardrail):** Eleven Music blocks prompts that name copyrighted creators or brands (e.g. "Annie Leibovitz", "BBC Earth"). Use generic descriptors only — genre, mood, instrumentation, tempo. This is music-API-specific — image generation prompts welcome creator names.
 
@@ -237,9 +239,9 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/elevenlabs_audio.py pipeline \
 - Insert audio tags like `[exhales]`, `[reverent]`, `[contemplative]` for emotional beats — tag set is open-ended, not whitelisted
 - Use ellipses (`...`) for contemplative pauses
 - Use selective CAPS for emphasis on key words
-- Match line length to the *voice's* WPM (different voices have different pacing — see `references/elevenlabs-audio.md` line-length calibration section)
+- Match line length to the *voice's* WPM (different voices have different pacing — see `references/audio-pipeline.md` line-length calibration section)
 
-See `references/elevenlabs-audio.md` for the full architecture, FFmpeg parameter rationale, voice design flow, custom voice schema, and prompt engineering for both TTS and music.
+See `references/audio-pipeline.md` for the full architecture, FFmpeg parameter rationale, voice design flow, custom voice schema, and prompt engineering for both TTS and music.
 
 ## Setup
 
@@ -256,5 +258,5 @@ Load on-demand -- do NOT load all at startup:
 - `references/video-domain-modes.md` -- 6 domain modes with modifier libraries, shot types for sequences
 - `references/video-sequences.md` -- Multi-shot production, first/last frame chaining, storyboard approval
 - `references/video-audio.md` -- VEO native dialogue, SFX, ambient audio prompting + 12 empirical findings from spike sessions
-- `references/elevenlabs-audio.md` -- v3.7.1 audio replacement pipeline (ElevenLabs TTS + music + ducked mix), voice design, custom voice schema
+- `references/audio-pipeline.md` -- v3.7.1 audio replacement pipeline (ElevenLabs TTS + music + ducked mix), voice design, custom voice schema
 - `references/image-to-video.md` -- Animate-a-still pipeline, reference image handling

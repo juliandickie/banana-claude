@@ -113,7 +113,7 @@ The following findings came from spikes 1-3 of the strategic reset session
 (2026-04-14). Each is empirically verified and reproducible. The session also
 shipped the `elevenlabs_audio.py` audio replacement pipeline (v3.7.1) which
 solves the multi-clip stitching artifacts uncovered here. See
-`references/elevenlabs-audio.md` for the full pipeline architecture.
+`references/audio-pipeline.md` for the full pipeline architecture.
 
 ### F1. VEO 3.1 voice character anchoring works across separate generations
 <!-- verified: 2026-04-14 -->
@@ -224,6 +224,35 @@ Five ellipses in a 32-second narration script slowed delivery from
 natural and deliberate. Use ellipses for "narrator beat" pacing in
 documentary content.
 
+### F13. Music model quality is uncorrelated with spec-sheet metrics at typical playback conditions
+<!-- verified: 2026-04-14 -->
+**Spike 4 (v3.7.2) tested 5 music providers** with the identical prompt:
+Lyria 2, ElevenLabs Music, Stable Audio 2.5, MiniMax Music 1.5, Meta MusicGen.
+The user listening verdict ranked them: **Lyria > ElevenLabs > MusicGen >
+MiniMax > Stable Audio**. The most striking finding: Stable Audio had the
+fastest generation (4.6s vs Lyria's 26s), competitive sample rate (44.1 kHz),
+and the cleanest diffusion architecture, but was rated *worst* by the
+listening test. Conversely, MusicGen (the 2-year-old open-source baseline)
+beat the much newer MiniMax Music 1.5 because MusicGen was trained on
+instrumental music while MiniMax was trained on songs with vocals — **domain
+of training matters more than recency or spec sheets**.
+
+**Generalizable principles:**
+1. Audio gen model quality is NOT predictable from sample rate, bit rate, or
+   model architecture — only subjective listening tests are valid evaluation.
+2. Training data domain (instrumental vs vocal-song) matters more than model
+   recency. A 2024 instrumental-trained model beats a 2025 song-trained model
+   on instrumental tasks.
+3. The spec-vs-quality decoupling means future model evaluations need empirical
+   listening, not just benchmark comparisons. **Apply the strategic reset's
+   "test before build" principle to every new music provider that gets added
+   to the v3.7.x audio pipeline.**
+
+v3.7.2 ships Lyria 2 as the default music source and ElevenLabs Music as the
+alternative based on this empirical ranking. Stable Audio, MiniMax, and
+MusicGen are NOT integrated. See `references/audio-pipeline.md` "Music sources"
+section for the full bake-off table and decision matrix.
+
 ---
 
 ## v3.7.1 audio replacement pipeline (the recommended path for multi-clip sequences)
@@ -246,6 +275,6 @@ python3 skills/video/scripts/elevenlabs_audio.py pipeline \
   --out final.mp4
 ```
 
-See `references/elevenlabs-audio.md` for the full architecture, voice design
+See `references/audio-pipeline.md` for the full architecture, voice design
 flow, custom voice schema, FFmpeg parameter rationale, and prompt engineering
 guidance for both TTS and Eleven Music.

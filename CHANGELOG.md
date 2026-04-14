@@ -5,6 +5,68 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.7.2] - 2026-04-14
+
+### Headline
+
+**Lyria 2 added as the new default music source after a 5-way bake-off.** Spike 4 of the strategic reset session tested 5 music providers with the identical "cinematic nature documentary" prompt: Google Lyria 2, ElevenLabs Music, Meta MusicGen (`stereo-large`), MiniMax Music 1.5, and Stability AI Stable Audio 2.5. **Lyria won decisively** with ElevenLabs as a close second; MusicGen was middle-of-the-pack despite being 2 years old; MiniMax (a song-generation model) was rated worse than MusicGen because it fought instrumental prompts; Stable Audio was rated worst despite having the strongest spec sheet. v3.7.2 ships Lyria as the new default and retains ElevenLabs as the alternative; the other 3 are NOT integrated.
+
+### The most important finding from spike 4
+
+**F13 (audio gen quality is uncorrelated with spec-sheet metrics).** Stable Audio 2.5 had the fastest generation (4.6s vs Lyria's 26s), competitive sample rate (44.1 kHz), and the cleanest diffusion architecture, but the user heard it as the worst of the 5. Conversely, MusicGen (the 2-year-old open-source baseline) beat the much newer MiniMax 1.5 because MusicGen was trained on instrumental music while MiniMax was trained on songs with vocals. **Domain of training matters more than recency or spec sheets.** This belongs in `references/video-audio.md` as F13 with a `<!-- verified: 2026-04-14 -->` marker, and the generalizable principle is captured in CLAUDE.md key constraints: always evaluate new audio providers via subjective listening, never via benchmarks.
+
+### Added
+
+- **Google Lyria 2 (`lyria-002`) as the default music source** in `audio_pipeline.py`. Reuses the existing `vertex_api_key` + `vertex_project_id` + `vertex_location` from VEO setup — no new credentials needed. Outputs 32.768 second 48kHz/192kbps stereo MP3 (transcoded by the script from base64 WAV in the API response). Cost: $0.06 per call.
+- **`generate_music_lyria()` function** in `audio_pipeline.py` with full Lyria 2 API support including the `negative_prompt` field that ElevenLabs Music doesn't have. Empirically validated by spike 4 + a follow-up smoke test through the new Python wrapper.
+- **`generate_music()` dispatcher function** that routes to either Lyria or ElevenLabs based on a `source` parameter (default `"lyria"`). Both providers remain first-class.
+- **`--music-source {lyria,elevenlabs}` CLI flag** on both the `pipeline` and `music` subcommands. Default is `lyria`.
+- **`--music-negative-prompt` CLI flag** on the `pipeline` subcommand for Lyria's negative-exclusion feature. Lyria honors it cleanly; ElevenLabs ignores it.
+- **`vertex/lyria-002` pricing row** in `cost_tracker.py` with the fixed $0.06/call rate and a comment explaining the per-clip vs per-second billing model and the spike 4 5-way bake-off context.
+- **F13 finding** in `references/video-audio.md` documenting the spec-vs-quality decoupling discovered in spike 4. Each music model's empirical ranking is captured with the generalizable principles for future model evaluations.
+- **"Music sources (v3.7.2 multi-provider)" section** in `references/audio-pipeline.md` with the full provider comparison table (Lyria vs ElevenLabs across audio quality, duration, negative prompt support, cost, generation time, etc.), the 5-way bake-off results table, the "when to use which" decision matrix, the Lyria-specific prompt engineering tips, and the API-key auth caveat (Lyria's docs only document OAuth but spike 4 confirmed API-key auth works — same pattern as VEO).
+- **Updated architecture diagram** in `references/audio-pipeline.md` showing the new multi-provider music branch (Lyria default, ElevenLabs alternative).
+
+### Changed
+
+- **Renamed `skills/video/scripts/elevenlabs_audio.py` → `skills/video/scripts/audio_pipeline.py`** via `git mv` (preserves blame history). The file was named after a single provider (ElevenLabs) when it shipped in v3.7.1 yesterday, but now serves multiple music providers — the v3.7.1 name is misleading post-Lyria-integration. 12-hour-old script, no external consumers, clean rename with no migration cost.
+- **Renamed `skills/video/references/elevenlabs-audio.md` → `skills/video/references/audio-pipeline.md`** for the same reason. All cross-references in `video-audio.md`, SKILL.md, CLAUDE.md, and PROGRESS.md updated.
+- **Default music source for the audio pipeline is now Lyria 2** (was ElevenLabs Music in v3.7.1). The `pipeline` subcommand uses Lyria by default. Users who want ElevenLabs explicitly pass `--music-source elevenlabs`.
+- **`pipeline()` Python function signature** gained `music_source` and `music_negative_prompt` parameters with sensible defaults. Backward compat: existing v3.7.1 usage via the renamed script still works because the new parameters have defaults.
+- **`status` subcommand now reports both music providers** — Lyria/Vertex credentials check + ElevenLabs key check + ffmpeg/ffprobe + custom voice library. Previously only checked ElevenLabs.
+- **`mix_narration_with_music` is now called with the actual probed music duration** rather than the requested `music_length_ms`. This was a latent bug in v3.7.1: if ElevenLabs returned a slightly off-target duration, the apad would be wrong. With Lyria's fixed 32.768s clip ignoring `music_length_ms` entirely, the bug would have surfaced as a 768ms music-tail truncation. Now fixed.
+- **`audio-pipeline.md` "Prompt engineering" section restructured** to cover both providers together, with a Lyria-specific subsection on negative prompts (the killer feature vs ElevenLabs) and a shared subsection on the named-creator TOS rule that applies to both providers.
+
+### Spike 4 five-way bake-off results (full table)
+
+| Rank | Provider | Listening verdict | Tech specs |
+|---|---|---|---|
+| 🥇 1st | **Lyria 2** | "Definitely awesome", noticeable stereo on headphones, ship-ready | 48kHz / 192kbps stereo, 32.768s, $0.06/call |
+| 🥈 2nd | **ElevenLabs Music** | Close second, very similar quality to Lyria | 44.1kHz / 128kbps stereo, configurable, subscription |
+| 🥉 3rd | Meta MusicGen `stereo-large` | Average, no vocal artifacts, slight volume fluctuations | 32kHz / 96kbps stereo, March 2024 model |
+| 4th | MiniMax Music 1.5 | Worse than MusicGen despite being newer (Nov 2025) | 44.1kHz / 256kbps stereo, song model fighting instrumental prompts |
+| 5th | Stability AI Stable Audio 2.5 | Worst per listening test, despite strongest spec sheet | 44.1kHz / 128kbps stereo, fastest generation (4.6s vs Lyria's 26s), Nov 2025 |
+
+Total spike 4 cost: ~$0.30 (Lyria $0.06 × 2 spike calls + Eleven $0 subscription + MusicGen ~$0.12 + MiniMax ~$0.20 + Stable Audio ~$0.05). Cumulative session spend across all spikes (1+2+3+4): ~$4.83. Approved budget remaining: ~$15-20 for spike 6 (banned-keywords re-validation, deferred to v3.7.3).
+
+### Deferred to v3.7.3+
+
+- **Spike 6 — banned-keywords re-validation** ($1.50). Originally part of the v3.7.2 plan but deferred to keep this release focused on Lyria. Targets v3.7.3.
+- **Multi-call Lyria for longer music** (auto-loop calls when `--music-length-ms > 32768`). Currently Lyria has a hard 32.768s cap; users needing longer music must use `--music-source elevenlabs`.
+- **Lyria-vs-ElevenLabs genre bake-off** (user request from v3.7.2 listening session). Test both providers across electronic, classical, folk, ambient, jazz, and hip-hop genres to surface model-strength differences beyond the cinematic-orchestral case validated in spike 4. Targets a v3.7.x research release.
+- **Stereo output in FFmpeg mix** (still mono — known v3.7.1 polish issue).
+- **Auto-measured per-voice WPM** (still hardcoded — known v3.7.1 polish issue).
+- **Voice cloning** (Instant Voice Clone, Professional Voice Clone — schema field reserved).
+
+### Verification
+
+- **Smoke-tested the new `audio_pipeline.py music --source lyria` command** end-to-end. Returned structured JSON with `source: "lyria"`, `model_id: "lyria-002"`, `duration_seconds: 32.768`, `elapsed_seconds: 25.13`, and a 788KB MP3 (transcoded from 6.29MB WAV). Identical output characteristics to the spike 4 raw API call — the new Python wrapper produces no regression vs the spike script.
+- **Lyria authentication via Vertex API key confirmed working** through the `audio_pipeline.py` code path. Same `vertex_api_key` from `~/.banana/config.json` that the existing VEO calls use. No new credentials needed.
+- **`audio_pipeline.py --help` and all subcommand `--help` outputs verified** — `music` subcommand correctly shows `--source {lyria,elevenlabs}`, `pipeline` subcommand correctly shows `--music-source {lyria,elevenlabs}` and `--music-negative-prompt`.
+- **`git mv` preserved file history** for both renamed files — `git status --short` shows them as `R` (renamed), not `D` (deleted) + `??` (added).
+- **Version consistency verified**: `3.7.2` appears in `plugin.json`, `README.md` badge, and `CITATION.cff` (date `2026-04-14`).
+- **No new pip dependencies.** Lyria integration uses stdlib `urllib.request` + `base64` + `subprocess` for ffmpeg transcoding. Matches the plugin's existing fallback-script pattern.
+
 ## [3.7.1] - 2026-04-14
 
 ### Headline

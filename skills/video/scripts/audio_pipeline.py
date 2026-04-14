@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
-"""nano-banana-studio -- ElevenLabs audio replacement pipeline (v3.7.1)
+"""nano-banana-studio -- multi-provider audio replacement pipeline (v3.7.2)
 
-Generates continuous TTS narration + Eleven Music background bed, mixes them
-with FFmpeg side-chain ducking, and audio-swaps the result into a target video.
-This is the v3.7.1 architecture validated empirically in spike 3 of the strategic
-reset session — see ROADMAP.md and references/elevenlabs-audio.md for context.
+Generates continuous TTS narration (ElevenLabs) + background music (Lyria 2 default,
+ElevenLabs Music alternative), mixes them with FFmpeg side-chain ducking, and
+audio-swaps the result into a target video. This is the v3.7.1+v3.7.2 architecture
+validated empirically in spikes 3 and 4 of the strategic reset session — see
+ROADMAP.md and references/audio-pipeline.md for context.
+
+History:
+- v3.7.1 (2026-04-14): initial implementation as elevenlabs_audio.py with ElevenLabs Music
+- v3.7.2 (2026-04-14): renamed to audio_pipeline.py, Lyria 2 added as default music source
+                       after winning the 5-way bake-off in spike 4 (Lyria > ElevenLabs >
+                       MusicGen > MiniMax > Stable Audio per user listening verdict)
 
 The script's purpose is to solve the multi-clip music-bed seam problem in stitched
 VEO sequences: when 4 separately-generated VEO clips are concatenated, each clip's
@@ -97,9 +104,22 @@ DEFAULT_VOICE_SETTINGS = {
     "use_speaker_boost": True,
 }
 
-# Music defaults — music_v1, instrumental only
-DEFAULT_MUSIC_MODEL = "music_v1"
-DEFAULT_MUSIC_LENGTH_MS = 32000
+# Music defaults
+# v3.7.2: Lyria 2 is the default music source after the 5-way bake-off in spike 4
+# (Lyria > ElevenLabs > MusicGen > MiniMax > Stable Audio per user listening verdict).
+# ElevenLabs Music is retained as the alternative for users who prefer its character
+# or want subscription-billed cost (Lyria is fixed $0.06 per call regardless of subscription).
+DEFAULT_MUSIC_SOURCE = "lyria"  # "lyria" | "elevenlabs"
+DEFAULT_MUSIC_LENGTH_MS = 32000  # Lyria fixed at 32.768s; ElevenLabs configurable up to 600000
+
+# Lyria 2 defaults — google vertex AI lyria-002
+LYRIA_MODEL_ID = "lyria-002"
+# Lyria has a fixed clip duration of 32.768 seconds. The music_length_ms parameter
+# is ignored when source=lyria. Users who need different lengths must use elevenlabs.
+LYRIA_FIXED_DURATION_SEC = 32.768
+
+# ElevenLabs Music defaults — music_v1
+DEFAULT_ELEVEN_MUSIC_MODEL = "music_v1"
 
 # Voice Design defaults — eleven_ttv_v3 (v3-native)
 DEFAULT_TTV_MODEL = "eleven_ttv_v3"
@@ -315,24 +335,241 @@ def generate_narration(text: str, voice_id: str, api_key: str, model_id: str = D
 
 
 # ---------------------------------------------------------------------------
-# Stage 2: Music generation
+# Stage 2: Music generation (multi-provider)
+#
+# v3.7.2 supports two music providers, validated empirically in spike 4 of the
+# strategic reset session:
+#
+#   - Lyria 2 (Google Vertex AI, source="lyria") — DEFAULT
+#       * Highest fidelity in the spike 4 5-way bake-off (48kHz/192kbps stereo)
+#       * Fixed $0.06 per call, fixed 32.768s clip duration
+#       * Supports negative_prompt for explicit exclusions
+#       * Reuses existing Vertex API-key auth from ~/.banana/config.json
+#
+#   - ElevenLabs Music (source="elevenlabs") — ALTERNATIVE
+#       * Close second in the bake-off (44.1kHz/128kbps stereo)
+#       * Subscription-billed (effectively free on Creator tier within quota)
+#       * Configurable duration 3000-600000ms
+#       * No negative prompt support
+#       * Music API blocks named-creator/brand prompts (HTTP 400 with prompt_suggestion)
+#
+# Spike 4 also tested Stable Audio 2.5, MiniMax Music 1.5, and Meta MusicGen.
+# All three lost the listening test to Lyria + ElevenLabs and are NOT integrated
+# in v3.7.2. See references/audio-pipeline.md "5-way music model bake-off" for
+# the full comparison and the F13 finding (specs vs subjective quality).
 # ---------------------------------------------------------------------------
 
 
-def generate_music(prompt: str, api_key: str, length_ms: int = DEFAULT_MUSIC_LENGTH_MS,
-                   force_instrumental: bool = True, model_id: str = DEFAULT_MUSIC_MODEL,
-                   output_path: Path | None = None) -> dict:
+def generate_music(prompt: str, api_key: str | None = None, source: str = DEFAULT_MUSIC_SOURCE,
+                   length_ms: int = DEFAULT_MUSIC_LENGTH_MS,
+                   negative_prompt: str | None = None,
+                   force_instrumental: bool = True,
+                   output_path: Path | None = None,
+                   keep_wav: bool = True,
+                   mp3_bitrate: str = "256k") -> dict:
+    """Generate background music via the configured provider.
+
+    Dispatches to source-specific implementations:
+      - source="lyria":      Google Vertex AI Lyria 2 (default)
+      - source="elevenlabs": ElevenLabs Music v1
+
+    Both produce stereo MP3 output of approximately the requested length. Lyria
+    has a fixed 32.768s clip duration; the length_ms parameter is ignored when
+    source=lyria. ElevenLabs respects length_ms in the 3000-600000ms range.
+
+    keep_wav and mp3_bitrate apply to Lyria only — Lyria delivers a lossless
+    WAV master that v3.7.2 preserves alongside the transcoded MP3 by default.
+    ElevenLabs delivers MP3 directly with no lossless source available.
+
+    The api_key parameter is provider-dependent: Lyria reads vertex_api_key from
+    config and ignores api_key; ElevenLabs uses elevenlabs_api_key.
+    """
+    if source == "lyria":
+        return generate_music_lyria(
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            output_path=output_path,
+            keep_wav=keep_wav,
+            mp3_bitrate=mp3_bitrate,
+        )
+    elif source == "elevenlabs":
+        return generate_music_elevenlabs(
+            prompt=prompt,
+            api_key=api_key or _get_elevenlabs_key(),
+            length_ms=length_ms,
+            force_instrumental=force_instrumental,
+            output_path=output_path,
+        )
+    else:
+        _error_exit(f"unknown music source: {source!r}. Valid: 'lyria', 'elevenlabs'")
+        return {}  # unreachable
+
+
+def generate_music_lyria(prompt: str, negative_prompt: str | None = None,
+                         output_path: Path | None = None,
+                         keep_wav: bool = True,
+                         mp3_bitrate: str = "256k") -> dict:
+    """Call Google Vertex AI Lyria 2 (lyria-002) for a 32.768s instrumental clip.
+
+    Uses bound-to-service-account API-key auth via the existing vertex_api_key
+    in ~/.banana/config.json. The same auth path the rest of the plugin uses
+    for VEO video generation. No OAuth or service account JSON required.
+
+    Lyria 2 has a fixed 32.768-second clip length — there is no duration
+    parameter. The output is high-fidelity 48kHz stereo PCM WAV.
+
+    v3.7.2 dual-output: this function preserves BOTH the lossless WAV source
+    AND a 256 kbps MP3 transcoded copy. The WAV is the canonical master for
+    downstream editing (layering, EQ, mastering); the MP3 is for preview,
+    sharing, and the audio pipeline mix stage. Storage cost is ~6.3 MB per
+    WAV vs ~1 MB per MP3 — both are kept by default since the MP3 alone
+    discards the lossless source which can't be recovered.
+
+    Pass keep_wav=False to skip the WAV file (output_path will be MP3 only).
+    Pass mp3_bitrate="192k" or other libmp3lame bitrate to override the default
+    256k MP3 quality (192k matches v3.7.1 ElevenLabs convention; 256k is the
+    new v3.7.2 default for more transparent preview quality).
+
+    Lyria supports negative_prompt for explicit exclusions ("vocals, dissonance,
+    harsh percussion") — use this generously since Lyria honors it cleanly.
+
+    Cost: $0.06 per call (10 RPM rate limit per Google docs).
+
+    Empirically validated in spike 4 of the strategic reset session — Lyria 2
+    won the 5-way bake-off against ElevenLabs, Stable Audio 2.5, MiniMax 1.5,
+    and Meta MusicGen.
+    """
+    config = _load_config()
+    api_key = config.get("vertex_api_key")
+    project = config.get("vertex_project_id")
+    location = config.get("vertex_location", "us-central1")
+
+    if not (api_key and project and location):
+        _error_exit(
+            "Lyria requires vertex_api_key, vertex_project_id, and vertex_location "
+            "in ~/.banana/config.json. These are the same credentials used for VEO. "
+            "See video/references/veo-models.md → Backend Availability for setup."
+        )
+
+    if output_path is None:
+        DEFAULT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        ts = time.strftime("%Y%m%d_%H%M%S")
+        output_path = DEFAULT_OUTPUT_DIR / f"music_lyria_{ts}.mp3"
+    output_path = Path(output_path)
+
+    # Construct Vertex AI Lyria endpoint URL
+    endpoint = (
+        f"https://{location}-aiplatform.googleapis.com/v1/projects/{project}/"
+        f"locations/{location}/publishers/google/models/{LYRIA_MODEL_ID}:predict"
+    )
+    url_with_key = f"{endpoint}?key={api_key}"
+
+    instance: dict = {"prompt": prompt}
+    if negative_prompt:
+        instance["negative_prompt"] = negative_prompt
+
+    body = json.dumps({
+        "instances": [instance],
+        "parameters": {},
+    }).encode()
+
+    t0 = time.time()
+    req = urllib.request.Request(
+        url_with_key,
+        data=body,
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=300) as resp:
+            data = json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        _error_exit(f"Lyria gen failed: {_http_error_message(e)}")
+    except Exception as e:
+        _error_exit(f"Lyria gen failed: {type(e).__name__}: {e}")
+
+    predictions = data.get("predictions", [])
+    if not predictions:
+        _error_exit(f"Lyria returned no predictions. Response keys: {list(data.keys())}")
+
+    pred = predictions[0]
+    audio_b64 = pred.get("audioContent") or pred.get("bytesBase64Encoded")
+    if not audio_b64:
+        _error_exit(f"Lyria prediction missing audioContent. Keys: {list(pred.keys())}")
+    wav_bytes = base64.b64decode(audio_b64)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    _check_ffmpeg()
+
+    # v3.7.2 dual output: write the lossless WAV source first, then transcode
+    # to MP3. Both files share the same basename so they're paired on disk.
+    wav_path = output_path.with_suffix(".wav") if keep_wav else None
+    if keep_wav:
+        with open(wav_path, "wb") as f:
+            f.write(wav_bytes)
+
+    # Transcode WAV → MP3. Read from the WAV file on disk (if kept) for
+    # cleaner ffmpeg behavior on unusual WAV headers; fall back to stdin pipe
+    # if WAV wasn't saved.
+    if keep_wav:
+        ffmpeg_input = ["-i", str(wav_path)]
+        ffmpeg_stdin = None
+    else:
+        ffmpeg_input = ["-f", "wav", "-i", "pipe:0"]
+        ffmpeg_stdin = wav_bytes
+
+    proc = subprocess.run(
+        ["ffmpeg", "-y", *ffmpeg_input,
+         "-c:a", "libmp3lame", "-b:a", mp3_bitrate, str(output_path)],
+        input=ffmpeg_stdin,
+        capture_output=True,
+    )
+    if proc.returncode != 0:
+        # Fall back to writing only the WAV if transcoding fails
+        if not keep_wav:
+            wav_path = output_path.with_suffix(".wav")
+            with open(wav_path, "wb") as f:
+                f.write(wav_bytes)
+        # Return WAV path as the primary output
+        output_path = wav_path
+
+    return {
+        "mp3_path": str(output_path) if output_path.suffix == ".mp3" else None,
+        "wav_path": str(wav_path) if wav_path else None,
+        "path": str(output_path),  # back-compat: primary output for downstream callers
+        "mp3_bytes": output_path.stat().st_size if output_path.suffix == ".mp3" else None,
+        "wav_bytes": len(wav_bytes),
+        "mp3_bitrate": mp3_bitrate if output_path.suffix == ".mp3" else None,
+        "source": "lyria",
+        "model_id": LYRIA_MODEL_ID,
+        "duration_seconds": LYRIA_FIXED_DURATION_SEC,
+        "elapsed_seconds": round(time.time() - t0, 2),
+    }
+
+
+def generate_music_elevenlabs(prompt: str, api_key: str,
+                              length_ms: int = DEFAULT_MUSIC_LENGTH_MS,
+                              force_instrumental: bool = True,
+                              model_id: str = DEFAULT_ELEVEN_MUSIC_MODEL,
+                              output_path: Path | None = None) -> dict:
     """Call Eleven Music for an instrumental background bed.
 
     Important: prompts must NOT name copyrighted creators or brands (e.g.
     "Annie Leibovitz", "BBC Earth"). The API blocks these with HTTP 400 and
     a `prompt_suggestion` in the response. Use generic descriptors only.
-    Empirical finding from spike 3 v1 — see references/elevenlabs-audio.md.
+    Empirical finding from spike 3 v1 — see references/audio-pipeline.md.
+
+    This is the v3.7.1 implementation. v3.7.2 retains it as the alternative
+    music source after Lyria became the default — both functions remain
+    fully supported.
     """
     if output_path is None:
         DEFAULT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
         ts = time.strftime("%Y%m%d_%H%M%S")
-        output_path = DEFAULT_OUTPUT_DIR / f"music_{ts}.mp3"
+        output_path = DEFAULT_OUTPUT_DIR / f"music_elevenlabs_{ts}.mp3"
 
     body = {
         "prompt": prompt,
@@ -346,9 +583,9 @@ def generate_music(prompt: str, api_key: str, length_ms: int = DEFAULT_MUSIC_LEN
     try:
         audio_bytes = _http_post_json(url, body, api_key, accept="audio/mpeg", timeout=300)
     except urllib.error.HTTPError as e:
-        _error_exit(f"music gen failed: {_http_error_message(e)}")
+        _error_exit(f"ElevenLabs music gen failed: {_http_error_message(e)}")
     except Exception as e:
-        _error_exit(f"music gen failed: {type(e).__name__}: {e}")
+        _error_exit(f"ElevenLabs music gen failed: {type(e).__name__}: {e}")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "wb") as f:
@@ -357,11 +594,24 @@ def generate_music(prompt: str, api_key: str, length_ms: int = DEFAULT_MUSIC_LEN
     return {
         "path": str(output_path),
         "bytes": len(audio_bytes),
+        "source": "elevenlabs",
         "model_id": model_id,
         "length_ms": length_ms,
         "force_instrumental": force_instrumental,
         "elapsed_seconds": round(time.time() - t0, 2),
     }
+
+
+def _get_elevenlabs_key() -> str:
+    """Helper to look up the ElevenLabs key without requiring it on Lyria-only calls."""
+    config = _load_config()
+    key = config.get("elevenlabs_api_key") or os.environ.get("ELEVENLABS_API_KEY")
+    if not key:
+        _error_exit(
+            "ElevenLabs API key not found. Required when using --music-source elevenlabs. "
+            "Add elevenlabs_api_key to ~/.banana/config.json or set ELEVENLABS_API_KEY env var."
+        )
+    return key
 
 
 # ---------------------------------------------------------------------------
@@ -495,21 +745,30 @@ def pipeline(video_path: Path, narration_text: str, music_prompt: str,
              voice_id: str, api_key: str,
              output_path: Path | None = None,
              music_length_ms: int | None = None,
+             music_source: str = DEFAULT_MUSIC_SOURCE,
+             music_negative_prompt: str | None = None,
              tts_model: str = DEFAULT_TTS_MODEL,
              voice_settings: dict | None = None) -> dict:
-    """Full v3.7.1 audio replacement: TTS + music in parallel, mix, swap.
+    """Full v3.7.1+ audio replacement: TTS + music in parallel, mix, swap.
 
     Returns a structured result with paths and timing for each stage. The TTS
     and music API calls run concurrently via ThreadPoolExecutor — they are
-    independent so parallelization roughly halves the user-perceived latency
-    (sequential is ~19s, parallel is ~12s).
+    independent so parallelization roughly halves the user-perceived latency.
+
+    v3.7.2: music_source can be "lyria" (default, Google Vertex AI Lyria 2)
+    or "elevenlabs" (ElevenLabs Music v1). The api_key parameter is always
+    the ElevenLabs key (used for TTS narration); the Vertex API key for Lyria
+    is read from ~/.banana/config.json automatically.
     """
     if output_path is None:
         DEFAULT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
         ts = time.strftime("%Y%m%d_%H%M%S")
         output_path = DEFAULT_OUTPUT_DIR / f"pipeline_{ts}.mp4"
 
-    # Compute target music length from video duration if not specified
+    # Compute target music length from video duration if not specified.
+    # NOTE: Lyria has a fixed 32.768s clip duration regardless of this value;
+    # the parameter only matters for source=elevenlabs. We still compute it for
+    # the mix stage which uses the actual generated music length as the apad target.
     if music_length_ms is None:
         video_duration = _probe_duration(video_path)
         music_length_ms = max(int(video_duration * 1000), 3000)
@@ -517,6 +776,7 @@ def pipeline(video_path: Path, narration_text: str, music_prompt: str,
     # Stage A: parallel TTS + music generation
     pipeline_t0 = time.time()
     print(json.dumps({"status": "stage_a", "step": "parallel_api_calls",
+                      "music_source": music_source,
                       "tts_chars": len(narration_text),
                       "music_length_ms": music_length_ms}), file=sys.stderr)
 
@@ -532,18 +792,25 @@ def pipeline(video_path: Path, narration_text: str, music_prompt: str,
         music_future = executor.submit(
             generate_music,
             prompt=music_prompt,
-            api_key=api_key,
+            api_key=api_key,  # only used if source=elevenlabs
+            source=music_source,
             length_ms=music_length_ms,
+            negative_prompt=music_negative_prompt,
         )
         narr_result = narr_future.result()
         music_result = music_future.result()
 
     # Stage B: mix narration over music with ducking
     print(json.dumps({"status": "stage_b", "step": "ffmpeg_mix"}), file=sys.stderr)
+    # Use the ACTUAL generated music duration (probed from disk) rather than the
+    # requested length_ms. Lyria delivers a fixed 32.768s clip regardless of the
+    # requested length, and ElevenLabs may also produce slightly off-target durations.
+    # The apad target in the mix stage must match what's actually on disk.
+    actual_music_duration = _probe_duration(music_result["path"])
     mix_result = mix_narration_with_music(
         narration_path=Path(narr_result["path"]),
         music_path=Path(music_result["path"]),
-        duration=music_length_ms / 1000.0,
+        duration=actual_music_duration,
     )
 
     # Stage C: audio-swap into video
@@ -731,11 +998,25 @@ def list_voices() -> dict:
 
 
 def status() -> dict:
-    """Verify ElevenLabs API key, ffmpeg, and custom voice library."""
+    """Verify both music sources (Lyria + ElevenLabs), ffmpeg, and custom voice library."""
     result: dict = {"checks": []}
 
-    # API key
     config = _load_config()
+
+    # Lyria (Vertex AI) — primary music source as of v3.7.2
+    has_vertex = bool(
+        config.get("vertex_api_key")
+        and config.get("vertex_project_id")
+        and config.get("vertex_location")
+    )
+    result["checks"].append({
+        "name": "lyria_vertex_credentials",
+        "ok": has_vertex,
+        "vertex_project_id": config.get("vertex_project_id") if has_vertex else None,
+        "vertex_location": config.get("vertex_location") if has_vertex else None,
+    })
+
+    # ElevenLabs — narration TTS + alternative music source
     has_key = bool(config.get("elevenlabs_api_key")) or bool(os.environ.get("ELEVENLABS_API_KEY"))
     result["checks"].append({"name": "elevenlabs_api_key", "ok": has_key})
 
@@ -781,29 +1062,40 @@ def status() -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="ElevenLabs audio replacement pipeline for nano-banana-studio v3.7.1+",
+        description="Audio replacement pipeline for nano-banana-studio v3.7.2+ (Lyria + ElevenLabs)",
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     # status
-    sub.add_parser("status", help="Check API key, ffmpeg, and custom voice library")
+    sub.add_parser("status", help="Check API keys, ffmpeg, custom voices, and music sources")
 
     # narrate
-    p_narr = sub.add_parser("narrate", help="Generate TTS narration from text")
+    p_narr = sub.add_parser("narrate", help="Generate TTS narration from text (ElevenLabs)")
     p_narr.add_argument("--text", required=True)
     p_narr.add_argument("--voice", help="Voice role name or literal voice_id (defaults to narrator role)")
     p_narr.add_argument("--model", default=DEFAULT_TTS_MODEL)
     p_narr.add_argument("--out", help="Output mp3 path (default: ~/Documents/nano-banana-audio/narration_TS.mp3)")
     p_narr.add_argument("--api-key")
 
-    # music
-    p_music = sub.add_parser("music", help="Generate Eleven Music background bed")
+    # music (multi-provider, v3.7.2+)
+    p_music = sub.add_parser("music", help="Generate background music (Lyria default, ElevenLabs alternative)")
     p_music.add_argument("--prompt", required=True)
-    p_music.add_argument("--length-ms", type=int, default=DEFAULT_MUSIC_LENGTH_MS)
+    p_music.add_argument("--source", choices=["lyria", "elevenlabs"], default=DEFAULT_MUSIC_SOURCE,
+                         help=f"Music provider (default: {DEFAULT_MUSIC_SOURCE}). "
+                              "Lyria: $0.06 fixed, 32.768s, 48kHz/192kbps, supports negative_prompt, Vertex auth. "
+                              "ElevenLabs: subscription, configurable length, 44.1kHz/128kbps, no negative_prompt.")
+    p_music.add_argument("--negative-prompt", default=None,
+                         help="What to avoid (Lyria only — ElevenLabs ignores this)")
+    p_music.add_argument("--length-ms", type=int, default=DEFAULT_MUSIC_LENGTH_MS,
+                         help="Length in ms (ElevenLabs only — Lyria has fixed 32.768s)")
     p_music.add_argument("--with-vocals", action="store_true",
-                         help="Allow vocals (default is force_instrumental=True)")
+                         help="Allow vocals (ElevenLabs only — Lyria is always instrumental)")
+    p_music.add_argument("--no-wav", action="store_true",
+                         help="(Lyria only) Skip saving the lossless WAV source. By default both .mp3 and .wav are saved.")
+    p_music.add_argument("--mp3-bitrate", default="256k",
+                         help="(Lyria only) MP3 transcode bitrate (default: 256k for transparent quality). Use 192k to match v3.7.1 ElevenLabs convention.")
     p_music.add_argument("--out")
-    p_music.add_argument("--api-key")
+    p_music.add_argument("--api-key", help="ElevenLabs API key (only needed when source=elevenlabs)")
 
     # mix
     p_mix = sub.add_parser("mix", help="FFmpeg mix narration + music with side-chain ducking")
@@ -824,10 +1116,14 @@ def main() -> None:
     p_pipe.add_argument("--video", required=True, help="Source video file (audio will be replaced)")
     p_pipe.add_argument("--text", required=True, help="Narration text (with audio tags, ellipses, CAPS as desired)")
     p_pipe.add_argument("--music-prompt", required=True,
-                        help="Music description (no named creators/brands — they trigger TOS guardrail)")
+                        help="Music description (no named creators/brands — both Lyria and ElevenLabs reject these)")
+    p_pipe.add_argument("--music-source", choices=["lyria", "elevenlabs"], default=DEFAULT_MUSIC_SOURCE,
+                        help=f"Music provider (default: {DEFAULT_MUSIC_SOURCE}). See music subcommand for details.")
+    p_pipe.add_argument("--music-negative-prompt", default=None,
+                        help="What to avoid in music (Lyria only — improves prompt fidelity)")
     p_pipe.add_argument("--voice", help="Voice role or voice_id (default: narrator)")
     p_pipe.add_argument("--music-length-ms", type=int,
-                        help="Music length in ms (default: matches video duration)")
+                        help="Music length in ms (ElevenLabs only — Lyria has fixed 32.768s)")
     p_pipe.add_argument("--out", help="Final output mp4 path")
     p_pipe.add_argument("--tts-model", default=DEFAULT_TTS_MODEL)
     p_pipe.add_argument("--api-key")
@@ -876,13 +1172,21 @@ def main() -> None:
             output_path=Path(args.out) if args.out else None,
         )
     elif args.cmd == "music":
-        api_key = _get_api_key(args.api_key)
+        # Lyria reads vertex_api_key from config; ElevenLabs needs its own key.
+        # Only fetch the ElevenLabs key when source=elevenlabs.
+        api_key = None
+        if args.source == "elevenlabs":
+            api_key = _get_api_key(args.api_key)
         result = generate_music(
             prompt=args.prompt,
             api_key=api_key,
+            source=args.source,
             length_ms=args.length_ms,
+            negative_prompt=args.negative_prompt,
             force_instrumental=not args.with_vocals,
             output_path=Path(args.out) if args.out else None,
+            keep_wav=not args.no_wav,
+            mp3_bitrate=args.mp3_bitrate,
         )
     elif args.cmd == "mix":
         result = mix_narration_with_music(
@@ -898,6 +1202,8 @@ def main() -> None:
             output_path=Path(args.out) if args.out else None,
         )
     elif args.cmd == "pipeline":
+        # ElevenLabs key is always needed (TTS narration uses it). Lyria for music
+        # uses Vertex auth from config and doesn't need this key.
         api_key = _get_api_key(args.api_key)
         voice_id, _ = _resolve_voice(args.voice)
         result = pipeline(
@@ -908,6 +1214,8 @@ def main() -> None:
             api_key=api_key,
             output_path=Path(args.out) if args.out else None,
             music_length_ms=args.music_length_ms,
+            music_source=args.music_source,
+            music_negative_prompt=args.music_negative_prompt,
             tts_model=args.tts_model,
         )
     elif args.cmd == "voice-design":

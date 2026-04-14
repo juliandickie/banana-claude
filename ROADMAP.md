@@ -222,8 +222,9 @@ These worked well and should be documented in the video-sequences reference so f
 | 4 | v3.6.2 — Sequence production polish (review subcommand, `use_veo_interpolation`, partial storyboard regen, new output default) | Medium | High | **Shipped 2026-04-11** |
 | 5 | v3.6.3 — Review gate enforcement with plan hash tracking + shot-type defaults + `--reference-image` on banana + 1080p Lite verified | Medium | High | **Shipped 2026-04-11** |
 | 6 | v3.7.1 — ElevenLabs audio replacement pipeline + custom voice design + strategic reset (12 empirical findings) | Large | Very High | **Shipped 2026-04-14** |
-| 7 | v3.6.4 — `update-prompts` Gemini-vision subcommand (closes the prompt-drift loop from v3.6.3) | Medium | High | Deferred — superseded in priority by v3.7.1 |
-| 8 | v3.7.2 — Lyria 2/3 music integration (Vertex Model Garden alternative to Eleven Music) + spike 4 + spike 6 banned-keywords re-validation | Medium | High | **Next** |
+| 7 | v3.7.2 — Lyria 2 as new default music source after 5-way bake-off (Lyria > ElevenLabs > MusicGen > MiniMax > Stable Audio); script renamed elevenlabs_audio.py → audio_pipeline.py; F13 spec-vs-quality finding | Medium | High | **Shipped 2026-04-14** |
+| 8 | v3.6.4 — `update-prompts` Gemini-vision subcommand (closes the prompt-drift loop from v3.6.3) | Medium | High | Deferred — superseded in priority by v3.7.x |
+| 9 | v3.7.3 — Spike 6 (banned-keywords re-validation, $1.50) + prompt-engineering.md refresh based on findings | Small | Medium | **Next** |
 | 9 | v3.7.x — Audio polish: stereo mix, auto-measured per-voice WPM, voice cloning subcommands (IVC + PVC), pre-flight music prompt validation | Medium | Medium | After v3.7.2 |
 | 10 | v3.8.0 — Provider abstraction layer (Vertex Model Garden + Replicate via MCP server) — informed by spike 5 character consistency bake-off | Large | High | After v3.7.x |
 | 11 | Replicate video model routing (Kling, Wan, PixVerse) for character consistency | Medium | High | Folded into v3.8.0 (Replicate side) |
@@ -231,10 +232,19 @@ These worked well and should be documented in the video-sequences reference so f
 
 ### Deferred research spikes (will run before their target releases)
 
-The strategic reset session (v3.7.1) included six planned empirical spikes. Three completed during the session and informed v3.7.1's design; three were deferred when the user pivoted to shipping v3.7.1 immediately. The deferred spikes are scheduled before their respective target releases:
+The strategic reset session included six planned empirical spikes. Spikes 1, 2, 3 (audio architecture) shipped in v3.7.1. Spike 4 (Lyria + 5-way music bake-off) shipped in v3.7.2 — the original $0.50 estimate became ~$0.43 actual including the four extra comparison models. Two spikes remain deferred:
 
-- **Spike 4 — Lyria 2 music smoke test (~$0.50)** — validates that Vertex AI Lyria 2/3 is callable through our existing Vertex API-key auth path. Targets v3.7.2.
 - **Spike 5 — Character consistency bake-off (~$15-20)** — generates 4-shot character sequences on VEO 3.1 Lite, Kling 2.6 (Replicate), and Runway Gen-4 (Replicate) for direct comparison. Informs whether v3.8.0 multi-provider abstraction is urgent or deferred. Targets v3.8.0.
-- **Spike 6 — Banned-keywords re-validation (~$1.50)** — tests whether the 2025-era banned-keywords list still applies to Gemini 3.1. Targets v3.7.2 or v3.8.1.
+- **Spike 6 — Banned-keywords re-validation (~$1.50)** — tests whether the 2025-era banned-keywords list (`"8K"`, `"masterpiece"`, `"ultra-realistic"`) still applies to Gemini 3.1 image generation. Targets **v3.7.3** (next release after v3.7.2).
 
-Total deferred spike budget: ~$17-22. All approved during the strategic reset session, just unspent at v3.7.1 ship time.
+### Future research backlog (post-spike-6)
+
+These items came up during sessions 12 + 13 but don't have committed target releases yet:
+
+- **Lyria-vs-ElevenLabs head-to-head genre bake-off**. v3.7.2's spike 4 tested both providers with a single "cinematic nature documentary" prompt where Lyria won decisively. The user noted that **different genres might surface different model strengths** and would be worth a dedicated test: electronic, classical, folk, ambient, jazz, hip-hop, etc. Each genre × each provider = ~12 test calls = ~$1-2 cost. Could ship as a v3.7.x research release that updates `audio-pipeline.md` with per-genre provider recommendations. Targets a v3.7.x research release after v3.7.3.
+- **Multi-call Lyria for music longer than 32.768s**. Lyria has a hard 32.768s clip cap. For longer videos, v3.7.x should auto-loop Lyria calls and crossfade them via FFmpeg. Or fall back to ElevenLabs which has a configurable duration. Targets v3.7.x audio polish.
+- **Stereo output in FFmpeg mix** — v3.7.1 known polish issue, currently mono. Workaround: route narration through `pan=stereo|c0=c0|c1=c0` before mixing. Should be a small surgical patch.
+- **Auto-measured per-voice WPM** — currently hardcoded for the line-length calibration logic. Would auto-measure on first use of a new voice and store in `custom_voices.{role}.wpm`.
+- **Voice cloning subcommands** (Instant Voice Clone + Professional Voice Clone). Schema field `source_type: "cloned"` is reserved.
+
+Total deferred spike budget: ~$17-22. Plus ~$1-2 for the future genre bake-off if the user approves it.

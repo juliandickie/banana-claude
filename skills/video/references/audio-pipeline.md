@@ -1,14 +1,16 @@
-# ElevenLabs Audio Replacement Pipeline (v3.7.1+)
+# Audio Replacement Pipeline (v3.7.1 + v3.7.2)
 
-This reference covers the v3.7.1 audio replacement architecture: why it exists,
-how to use it, and the empirical findings from spike 3 of the strategic reset
-session that informed its design.
+This reference covers the multi-provider audio replacement architecture: why it
+exists, how to use it, and the empirical findings from spikes 3 and 4 of the
+strategic reset session that informed its design.
 
 **Quick links:**
-- Script: `skills/video/scripts/elevenlabs_audio.py`
+- Script: `skills/video/scripts/audio_pipeline.py` (renamed from `audio_pipeline.py` in v3.7.2)
 - Slash commands: `/video audio narrate|music|mix|swap|pipeline`, `/video voice design|promote|list`
 - Companion reference: `skills/video/references/video-audio.md` (VEO native audio)
-- Findings: spike 3 results documented in `~/Desktop/spike3-elevenlabs-audio/spike-2-and-3-findings.md`
+- Findings: spike 3 + spike 4 results in `~/Desktop/spike3-elevenlabs-audio/` and `~/Desktop/spike4-lyria/`
+
+**v3.7.2 update**: Google Lyria 2 is now the default music source after winning the 5-way bake-off in spike 4 (Lyria > ElevenLabs > MusicGen > MiniMax > Stable Audio per user listening verdict). ElevenLabs Music remains as the alternative via `--music-source elevenlabs`. Both are first-class providers.
 
 ---
 
@@ -16,7 +18,89 @@ session that informed its design.
 
 **The problem v3.7.1 solves:** when you stitch multiple separately-generated VEO clips into a longer sequence, each clip has its own emergent music intro/outro envelope. FFmpeg concatenation joins them losslessly but the *audio* still has audible seams every clip-duration — the music "restarts" at every cut. This is a structural artifact of independent generation, not a per-clip quality issue. **The fix is to replace the entire audio bed with a single continuous track**, eliminating clip boundaries from the audio dimension by construction.
 
-**Empirical context:** spike 2 of the strategic reset session generated 4 VEO 3.1 Lite clips of the same autumn forest valley with identical voice descriptors and stitched them into a 32-second sequence. Voice character was perfectly consistent across all 4 clips (proving voice anchoring works), but the music bed had audible seams. Spike 3 then validated the audio-replacement architecture end-to-end with the v3.7.1 prototype, and the user confirmed the seams disappeared.
+**Empirical context:** spike 2 of the strategic reset session generated 4 VEO 3.1 Lite clips of the same autumn forest valley with identical voice descriptors and stitched them into a 32-second sequence. Voice character was perfectly consistent across all 4 clips (proving voice anchoring works), but the music bed had audible seams. Spike 3 then validated the audio-replacement architecture end-to-end with the v3.7.1 prototype, and the user confirmed the seams disappeared. **Spike 4 (v3.7.2) extended the music side with a 5-way bake-off across providers** to find the best music model — see "Music sources" below.
+
+---
+
+## Music sources (v3.7.2 multi-provider)
+
+v3.7.2 supports two music providers, both first-class. Default is Lyria 2.
+
+### Provider summary
+
+| | **Lyria 2 (default)** | **ElevenLabs Music (alternative)** |
+|---|---|---|
+| **Provider** | Google Vertex AI | ElevenLabs |
+| **Model** | `lyria-002` | `music_v1` |
+| **API endpoint** | `POST {location}-aiplatform.googleapis.com/v1/projects/{project}/locations/{location}/publishers/google/models/lyria-002:predict` | `POST api.elevenlabs.io/v1/music` |
+| **Auth** | Vertex API key (existing — same as VEO) | ElevenLabs API key (existing — same as TTS) |
+| **Audio quality** | 48 kHz / 192 kbps stereo (highest of all 5 candidates tested) | 44.1 kHz / 128 kbps stereo |
+| **Duration** | Fixed 32.768 seconds | 3,000–600,000 ms (configurable) |
+| **Negative prompt** | ✅ Yes — actively excludes things | ❌ No |
+| **Cost** | $0.06 per call (fixed) | Subscription quota (free on Creator+, ~$0.005/sec PAYG) |
+| **Generation time** | ~26 seconds | ~22 seconds |
+| **Output format** | base64-encoded WAV inline → transcoded to MP3 by the script | binary MP3 inline |
+
+### When to use which
+
+- **Use Lyria (default)** for:
+  - Highest audio fidelity (the 48kHz advantage)
+  - Predictable per-call cost — no quota anxiety
+  - Prompts that benefit from explicit negative exclusions ("no vocals, no harsh percussion")
+  - Cases where 32.768s clip duration is fine
+  - Documentary, cinematic, score, ambient genres (the 5-way bake-off used a nature-doc prompt and Lyria won)
+- **Use ElevenLabs** for:
+  - Custom durations beyond 32.768s (Lyria has a hard cap)
+  - High-volume usage on a Creator subscription (effectively free per call within quota)
+  - Prompts that don't need negative exclusions (positive prompt is sufficient)
+  - Cases where you've A/B tested both and prefer the ElevenLabs character for a specific genre
+
+### Spike 4 5-way bake-off results (2026-04-14)
+
+The strategic reset session tested 5 music providers with the **identical prompt** (`"Cinematic nature documentary background score, slow contemplative warm orchestral strings with soft piano, instrumental, around 70 BPM"`):
+
+| Rank | Provider | Verdict |
+|---|---|---|
+| 🥇 1st | **Lyria 2** | "Definitely awesome", noticeable stereo on headphones, would ship |
+| 🥈 2nd | **ElevenLabs Music** | Close second — quality very similar to Lyria |
+| 🥉 3rd | Meta MusicGen (`stereo-large`) | Average, no vocal artifacts but volume fluctuations. Better than MiniMax despite being 2 years older — proves training data matters more than recency. |
+| 4th | MiniMax Music 1.5 | Worse than MusicGen despite being newer — song-generation model fighting an instrumental prompt |
+| 5th | Stable Audio 2.5 | Worst per the listening test, despite having the strongest spec sheet on paper |
+
+**The most important finding** of the bake-off was the spec-vs-quality decoupling: Stable Audio had the fastest generation (4.6s vs Lyria's 26s), competitive sample rate (44.1 kHz), and a clean diffusion architecture, but the user heard it as the worst of the 5. **Audio gen model quality is uncorrelated with spec-sheet metrics at typical playback conditions** — see F13 in `references/video-audio.md`. Subjective listening is the only valid evaluation method.
+
+### Lyria-specific prompt engineering
+
+- **Positive prompts** work like ElevenLabs: genre, instrumentation, mood, tempo, style descriptors.
+- **Negative prompts** are Lyria's unique advantage. Use them generously to actively exclude things you don't want: `"vocals, singing, dissonance, harsh percussion, electronic synths"` — Lyria honors negative prompts cleanly. ElevenLabs has no equivalent field.
+- **Fixed 32.768 second duration** — there is no `duration_ms` parameter. If you need longer music for a long video, you must call Lyria multiple times and concatenate with FFmpeg (planned for v3.7.x as a `--length-ms` flag that auto-loops Lyria calls when source=lyria).
+- **Same TOS guardrails as ElevenLabs Music**: avoid named copyrighted creators or brands in the prompt. Both APIs reject these (the rejection mechanism is different but the rule is the same — use generic descriptors).
+- **`sample_count` parameter exists in the docs but appears non-functional** on the API-key auth path — spike 4 requested `sample_count=2` and got 1 prediction. Don't rely on batch generation; call Lyria once per output.
+
+### Lyria dual output (v3.7.2): WAV master + MP3 preview
+
+Lyria delivers a 6.29 MB base64-encoded **48 kHz / 16-bit stereo PCM WAV** in the API response. v3.7.2 preserves the lossless source by default and ALSO transcodes a 256 kbps MP3 alongside it:
+
+```
+~/Documents/nano-banana-audio/music_lyria_20260414_233623.wav   (6.0 MB — lossless 48kHz/16-bit/stereo PCM master)
+~/Documents/nano-banana-audio/music_lyria_20260414_233623.mp3   (1.0 MB — 256 kbps preview/share/pipeline-mix)
+```
+
+**Why both?** The WAV is the canonical master for downstream editing (layering, EQ, mastering, additional FFmpeg processing). The MP3 is for preview, sharing, and the audio replacement pipeline's mix stage which runs at MP3-compatible quality. Storage cost is ~7 MB per Lyria call (vs ~1 MB MP3 alone) — cheap for what you gain in workflow flexibility, especially if you want to re-mix or master the music outside the plugin.
+
+**MP3 quality default is 256 kbps** in v3.7.2 — psychoacoustically transparent for instrumental music. Most listeners cannot reliably distinguish 256 kbps MP3 from the source WAV in blind tests. v3.7.1 used 192 kbps for ElevenLabs music (which never has a lossless source available); v3.7.2 raised the Lyria default to 256 kbps because the lossless WAV is preserved as the master, so the MP3 is a *preview*, not a master, and benefits from higher quality.
+
+**To opt out of WAV preservation** (e.g. tight disk budget, batch generation): pass `--no-wav` on the `music` subcommand. The MP3 will be created and the WAV bytes will be written through ffmpeg's stdin pipe rather than to disk.
+
+**To override the MP3 bitrate**: pass `--mp3-bitrate 192k` (matches v3.7.1 ElevenLabs convention) or any other valid `libmp3lame` rate. Default is `256k`.
+
+**ElevenLabs Music does NOT have a lossless source** — the API returns MP3 directly. There is no WAV to preserve. The dual-output behavior applies only to Lyria.
+
+### Lyria auth caveat (important)
+
+Lyria uses the **bound-to-service-account API key** path (the `AQ.*` format from Vertex Express Mode signup) — NOT OAuth or service account JSON. This is the **same auth pattern the plugin uses for VEO** and reuses the existing `vertex_api_key` + `vertex_project_id` + `vertex_location` fields in `~/.banana/config.json`. **No new credentials needed if you've already set up VEO.**
+
+Google's official docs only document OAuth for Lyria, but spike 4 empirically verified that API-key auth works (similar to how VEO's docs only documented OAuth before our v3.6.0 backend work confirmed API-key auth was supported). This pattern of "API-key auth works on Vertex publisher models even when only OAuth is documented" is now load-bearing for the plugin's architecture and should be preserved when adding future Vertex models.
 
 ---
 
@@ -29,20 +113,27 @@ session that informed its design.
                      └─────────────┬─────────────┘
                                    │
                                    ▼
-            ┌──────────────────────────────────────────┐
-            │  Pipeline orchestrator (parallel calls)  │
-            │                                          │
-            │   ┌──────────────┐    ┌──────────────┐  │
-            │   │ ElevenLabs   │    │ Eleven Music │  │
-            │   │ TTS          │    │ POST /v1/    │  │
-            │   │ POST /v1/tts │    │ music        │  │
-            │   │ eleven_v3    │    │ music_v1     │  │
-            │   └──────┬───────┘    └──────┬───────┘  │
-            │          │                   │          │
-            │          ▼                   ▼          │
-            │     narration.mp3       music.mp3       │
-            │     (continuous)        (continuous)    │
-            └──────────────┬──────────────────────────┘
+            ┌────────────────────────────────────────────────────┐
+            │  Pipeline orchestrator (parallel calls, v3.7.2+)   │
+            │                                                    │
+            │   ┌──────────────┐    ┌────────────────────────┐  │
+            │   │ ElevenLabs   │    │  Music (--music-source)│  │
+            │   │ TTS          │    │  ┌──────────────────┐  │  │
+            │   │ POST /v1/tts │    │  │ Lyria 2 (default)│  │  │
+            │   │ eleven_v3    │    │  │ Vertex AI        │  │  │
+            │   │ + audio tags │    │  │ POST .../predict │  │  │
+            │   └──────┬───────┘    │  │ lyria-002        │  │  │
+            │          │            │  └──────────────────┘  │  │
+            │          │            │  ┌──────────────────┐  │  │
+            │          │            │  │ ElevenLabs Music │  │  │
+            │          │            │  │ POST /v1/music   │  │  │
+            │          │            │  │ music_v1 (alt)   │  │  │
+            │          │            │  └──────────────────┘  │  │
+            │          │            └───────────┬────────────┘  │
+            │          ▼                        ▼               │
+            │     narration.mp3            music.mp3            │
+            │     (continuous)             (continuous)         │
+            └──────────────────┬─────────────────────────────────┘
                            │
                            ▼
             ┌──────────────────────────────────┐
@@ -76,36 +167,44 @@ The TTS call and the music call run in parallel via `concurrent.futures.ThreadPo
 ### One-shot pipeline (the canonical command)
 
 ```bash
-python3 skills/video/scripts/elevenlabs_audio.py pipeline \
+# v3.7.2: Lyria 2 is the default music source (no --music-source flag needed)
+python3 skills/video/scripts/audio_pipeline.py pipeline \
   --video stitched-sequence.mp4 \
   --text "Each year... the seasons change across this valley, painting the forest in red and gold. [exhales] The river runs COLD here..." \
-  --music-prompt "Cinematic nature documentary background score, slow and contemplative warm orchestral strings with soft piano, instrumental only, no vocals, around 70 BPM" \
+  --music-prompt "Cinematic nature documentary background score, slow and contemplative warm orchestral strings with soft piano, instrumental only, around 70 BPM" \
+  --music-negative-prompt "vocals, dissonance, harsh percussion, electronic synths" \
   --voice narrator \
   --out final.mp4
+
+# To use ElevenLabs Music instead (e.g. for custom durations >32.768s):
+python3 skills/video/scripts/audio_pipeline.py pipeline \
+  --music-source elevenlabs \
+  --music-length-ms 60000 \
+  --video v.mp4 --text "..." --music-prompt "..." --voice narrator --out final.mp4
 ```
 
-This runs all four stages: parallel TTS + music, FFmpeg ducked mix, FFmpeg audio-swap into the source video. Output is a final MP4 with the new audio swapped in.
+This runs all four stages: parallel TTS + music, FFmpeg ducked mix, FFmpeg audio-swap into the source video. Output is a final MP4 with the new audio swapped in. **The `--music-negative-prompt` flag is Lyria-specific** — ElevenLabs ignores it. Use it generously to actively exclude things you don't want (vocals, percussion, etc.).
 
 ### Individual stages (for debugging or partial workflows)
 
 ```bash
 # Just generate narration:
-elevenlabs_audio.py narrate --text "..." --voice narrator --out narration.mp3
+audio_pipeline.py narrate --text "..." --voice narrator --out narration.mp3
 
 # Just generate music:
-elevenlabs_audio.py music --prompt "..." --length-ms 32000 --out music.mp3
+audio_pipeline.py music --prompt "..." --length-ms 32000 --out music.mp3
 
 # Mix existing narration + music:
-elevenlabs_audio.py mix --narration narration.mp3 --music music.mp3 --out mixed.mp3
+audio_pipeline.py mix --narration narration.mp3 --music music.mp3 --out mixed.mp3
 
 # Audio-swap an arbitrary audio file into a video:
-elevenlabs_audio.py swap --video v.mp4 --audio mixed.mp3 --out final.mp4
+audio_pipeline.py swap --video v.mp4 --audio mixed.mp3 --out final.mp4
 ```
 
 ### Status check (do this first)
 
 ```bash
-elevenlabs_audio.py status
+audio_pipeline.py status
 ```
 
 Verifies your ElevenLabs API key, ffmpeg/ffprobe availability, and lists any custom voices saved in `~/.banana/config.json`.
@@ -120,7 +219,7 @@ ElevenLabs Voice Design generates a custom voice from a text description. Three 
 
 ```bash
 # Step 1: design — generates 3 candidate previews
-elevenlabs_audio.py voice-design \
+audio_pipeline.py voice-design \
   --description "A mature male documentary narrator with a warm baritone voice and slight British accent. Calm, measured, authoritative delivery, like a seasoned BBC wildlife narrator. Approximately 50-60 years old. Speaks with deliberate pacing, gentle gravitas, and quiet reverence." \
   --model eleven_ttv_v3 \
   --guidance-scale 5
@@ -129,7 +228,7 @@ elevenlabs_audio.py voice-design \
 # Note the generated_voice_id of the chosen preview.
 
 # Step 2: promote — saves the chosen preview as a permanent voice + stores in config
-elevenlabs_audio.py voice-promote \
+audio_pipeline.py voice-promote \
   --generated-id DGEKfN3sQ7BmtUUNKoyI \
   --name "Nano Banana Narrator" \
   --role narrator \
@@ -140,7 +239,7 @@ elevenlabs_audio.py voice-promote \
 ### Listing saved voices
 
 ```bash
-elevenlabs_audio.py voice-list
+audio_pipeline.py voice-list
 ```
 
 Returns the contents of `~/.banana/config.json` `custom_voices` section.
@@ -150,9 +249,9 @@ Returns the contents of `~/.banana/config.json` `custom_voices` section.
 Pass `--voice ROLE` to any subcommand that takes a voice. The pipeline will look up the role in `custom_voices` and use the saved `voice_id`. If no `--voice` is specified, the pipeline defaults to the `narrator` role.
 
 ```bash
-elevenlabs_audio.py pipeline --voice narrator ...        # default
-elevenlabs_audio.py pipeline --voice character_a ...    # different role
-elevenlabs_audio.py pipeline --voice 21m00Tcm4TlvDq8ikWAM ...  # literal voice_id
+audio_pipeline.py pipeline --voice narrator ...        # default
+audio_pipeline.py pipeline --voice character_a ...    # different role
+audio_pipeline.py pipeline --voice 21m00Tcm4TlvDq8ikWAM ...  # literal voice_id
 ```
 
 ### Custom voice schema (in `~/.banana/config.json`)
@@ -250,7 +349,27 @@ ElevenLabs TTS does not have the same content restrictions as Eleven Music. You 
 
 ---
 
-## Prompt engineering — Eleven Music
+## Prompt engineering — Music providers (Lyria + Eleven Music)
+
+Both music providers respond to similar natural-language style prompts: genre, instrumentation, mood, tempo, and texture descriptors. The differences are in the available controls (Lyria has negative_prompt, ElevenLabs doesn't) and content restrictions (both block named creators/brands but with slightly different error patterns).
+
+### Lyria-specific — leverage the negative prompt
+
+Lyria's killer feature vs ElevenLabs is the `negative_prompt` field. Use it generously to actively exclude things you don't want, rather than relying on the positive prompt to imply absence:
+
+```bash
+# Positive prompt describes what you DO want
+--music-prompt "Cinematic warm orchestral strings with soft piano, nature documentary, around 70 BPM"
+
+# Negative prompt explicitly excludes what you DON'T want
+--music-negative-prompt "vocals, singing, harsh percussion, electronic synths, dissonance"
+```
+
+Lyria honors both fields independently. The negative prompt is particularly valuable for instrumental work where vocals or percussion would break the use case — explicit exclusion is more reliable than hoping the positive prompt's "instrumental only" phrasing will be interpreted correctly.
+
+### Both providers — TOS guardrails on named creators
+
+## Prompt engineering — Eleven Music (alternative provider)
 
 ### Default model and settings
 
@@ -377,7 +496,7 @@ Each finding has a `<!-- verified: 2026-04-14 -->` marker in `video-audio.md` pe
    ```
 3. **Verify with status check:**
    ```bash
-   python3 skills/video/scripts/elevenlabs_audio.py status
+   python3 skills/video/scripts/audio_pipeline.py status
    ```
 4. **Optionally design a custom narrator voice** (see Voice Management section above) or use any voice from your ElevenLabs library by passing the literal `voice_id`.
 

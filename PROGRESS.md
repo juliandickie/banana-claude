@@ -7,7 +7,7 @@
 
 - **Repo:** https://github.com/juliandickie/nano-banana-studio
 - **Origin:** https://github.com/AgriciDaniel/banana-claude (forked at v1.4.1, detached at v2.1.0)
-- **Current version:** 3.7.1
+- **Current version:** 3.7.2
 - **Local path:** `/Users/juliandickie/code/nano-banana-pro/nano-banana-studio/`
 - **Plugin layout:** `.claude-plugin/` + `skills/banana/` (image) + `skills/video/` (video) + `agents/`
 
@@ -329,6 +329,55 @@ This was a fundamentally different kind of session than 6-11. The previous five 
 **Total session 12 spend:** $4.40 of VEO Lite generation (spikes 1+2+3) + ~$0 ElevenLabs (subscription quota usage). Approved spike budget remaining: ~$15-20 for the deferred spikes that will run before v3.7.2/v3.8.0.
 
 **Cumulative v3.6.x + v3.7.1 spend across all sessions:** $8.05 ($3.65 sessions 8-11 + $4.40 session 12).
+
+### Session 13 (2026-04-14, immediately after session 12)
+**Scope:** v3.7.2 — Lyria 2 as new default music source after a 5-way bake-off, plus the `elevenlabs_audio.py` → `audio_pipeline.py` rename to reflect the new multi-provider scope
+
+This was a focused continuation of session 12's strategic reset. v3.7.1 shipped ElevenLabs as the only music source; the user directed me to start work on v3.7.2 by running spike 4 (Lyria smoke test) which had been deferred. The session expanded from a 1-clip Lyria smoke test into a 5-way music model bake-off because the user wanted to verify the choice empirically against current alternatives. The bake-off concluded with Lyria as the clear winner and v3.7.2 shipped the integration in the same session.
+
+**Spike 4 — 5-way music model bake-off:**
+
+1. **Initial Lyria smoke test ($0.06).** Ran `lyria-002` via Vertex AI with the bound-to-service-account API key (`AQ.*` format). Despite Google's docs only documenting OAuth auth, the API-key path worked — same pattern as VEO from v3.6.0. Returned 6.29 MB base64 WAV (48kHz/16-bit/stereo PCM, 32.768 seconds). User initial verdict: "the quality seems awesome", "I put headphones on and can notice the stereo effect", "definitely would ship".
+
+2. **Three-way comparison expansion ($0 + $0.12 + $0.20).** User asked for ElevenLabs Music regen with the same prompt + a Replicate model for direct comparison. Ran ElevenLabs (subscription quota, $0 marginal), then Meta MusicGen `stereo-large` on Replicate (~$0.12, 77s wall clock). MusicGen latest version on Replicate is from March 2024 — user noted they'd rather test a more recent Replicate model.
+
+3. **MiniMax Music 1.5 ($~0.20).** User-requested fourth model. Discovered it's structurally a **song-generation model** (lyrics field required, optimized for vocals) — not an instrumental score generator. Used minimal `[intro]\n[outro]` lyrics + heavy "instrumental only, no vocals" prompt to suppress vocals. November 2025 release date.
+
+4. **Stable Audio 2.5 ($0.05).** User-requested fifth model after seeing the dev info that a demo had background sound only. Pure instrumental diffusion model, **4.6-second wall clock generation** (5-17× faster than the others). November 2025 release.
+
+5. **Final user verdict from listening test:** "So it is definitely Lyria 2 for the win, with a close second to ElevenLabs. Stable Audio was the worst, and MusicGen was average but better than MiniMax 1.5, though it had volume fluctuations and no vocal artifacts. Quality is definitely awesome with Lyria 2."
+
+   The most striking finding: **Stable Audio had the strongest spec sheet** (fastest generation, modern diffusion architecture, competitive sample rate, $0.02-0.05 cost) **but was rated worst by the listening test**. Conversely, MusicGen (the 2-year-old open-source baseline) beat the much newer MiniMax 1.5 because MusicGen was trained on instrumental music while MiniMax was trained on songs with vocals. **Audio gen quality is uncorrelated with spec-sheet metrics** — captured as F13 in `references/video-audio.md`.
+
+**v3.7.2 implementation phase:**
+
+6. **`git mv` script and reference doc rename.** `skills/video/scripts/elevenlabs_audio.py` → `skills/video/scripts/audio_pipeline.py` and `skills/video/references/elevenlabs-audio.md` → `skills/video/references/audio-pipeline.md`. Used `git mv` to preserve blame history. v3.7.1 was 12 hours old at this point — clean rename with no migration cost since there were no external consumers yet.
+
+7. **Lyria functions added to `audio_pipeline.py`:** `generate_music_lyria()` (calls Vertex AI Lyria via API-key auth, base64-decodes the WAV response, transcodes to MP3 via subprocess ffmpeg), refactored `generate_music()` into a dispatcher routing by `source` parameter (default `"lyria"`), preserved the existing ElevenLabs implementation as `generate_music_elevenlabs()`. Added `_get_elevenlabs_key()` helper to avoid requiring the ElevenLabs key on Lyria-only calls.
+
+8. **CLI updates:** added `--source {lyria,elevenlabs}` to the `music` subcommand, `--music-source` and `--music-negative-prompt` to the `pipeline` subcommand. Updated the dispatch logic in `main()` to pass the new parameters through. Updated the docstring at the top of the file with v3.7.2 history.
+
+9. **Latent bug fix in `pipeline()`:** the v3.7.1 implementation called `mix_narration_with_music` with `music_length_ms / 1000.0` as the duration. With Lyria's fixed 32.768s clip ignoring `music_length_ms`, this would have produced a 768ms music-tail truncation. Fixed by probing the actual generated music duration from disk via `_probe_duration()` and passing that instead. The v3.7.1 ElevenLabs path also benefits — slight off-target durations (e.g. 32.000s vs requested 32000ms) no longer cause apad mismatches.
+
+10. **`status` subcommand expanded** to check Lyria/Vertex credentials in addition to ElevenLabs. Reports both providers' availability + ffmpeg + ffprobe + custom voices.
+
+11. **Smoke test through the new Python wrapper ($0.06).** Ran `audio_pipeline.py music --source lyria` end-to-end with the same prompt as the spike 4 raw API test. Returned structured JSON with `source: "lyria"`, `model_id: "lyria-002"`, `duration_seconds: 32.768`, `elapsed_seconds: 25.13`, and a 788KB MP3 transcoded from a 6.29MB WAV. Identical output characteristics to the spike 4 raw API call — no regression from the wrapper.
+
+12. **Documentation updates:** `audio-pipeline.md` (new "Music sources" section with provider comparison table, 5-way bake-off results table, "when to use which" decision matrix, Lyria-specific prompt engineering tips, API-key auth caveat, updated architecture diagram showing multi-provider music branch); `video-audio.md` (added F13 finding with the spec-vs-quality decoupling principle); `SKILL.md` (updated command table, audio pipeline section narrative, reference docs list); `CLAUDE.md` (file responsibilities table rename, new key constraints for Lyria + F13); `cost_tracker.py` (new `vertex/lyria-002` pricing row).
+
+13. **Version bump 3.7.1 → 3.7.2** across `plugin.json`, `README.md` badge, `CITATION.cff` (date stays 2026-04-14 because v3.7.1 also shipped today). New v3.7.2 subsection added to README "Features" section above the v3.7.1 subsection. Memory file updated with v3.7.2 architecture changes.
+
+**What's NOT in v3.7.2 (deferred to v3.7.3+):**
+- Spike 6 (banned-keywords re-validation, ~$1.50) — kept v3.7.2 focused on Lyria
+- Multi-call Lyria for music longer than 32.768s
+- Lyria-vs-ElevenLabs genre bake-off (user-requested research item — different genres might surface different model strengths)
+- Stereo output in FFmpeg mix (still mono — known v3.7.1 polish issue)
+- Auto-measured per-voice WPM
+- Voice cloning subcommands
+
+**Total session 13 spend:** ~$0.43 (~$0.06 Lyria smoke + $0 ElevenLabs regen + $0.12 MusicGen + ~$0.20 MiniMax + $0.05 Stable Audio + $0.06 wrapper smoke test). Cumulative spike spend (sessions 12+13): ~$4.83 of approved ~$20-25 budget.
+
+**Cumulative v3.6.x + v3.7.x spend across all sessions:** $8.48.
 
 ## Expansion Roadmap
 

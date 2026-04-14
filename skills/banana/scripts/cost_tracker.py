@@ -107,6 +107,23 @@ PRICING = {
     "elevenlabs/eleven_multilingual_sts_v2": {
         "per_1k_chars": 0.18,
     },
+    # Vertex AI Lyria 2 (v3.7.2+). Lyria 2 generates fixed-length 32.768s
+    # instrumental music clips. Pricing is per-clip, not per-second:
+    #
+    #   $0.06 per call (Vertex AI publisher model billing, April 2026)
+    #
+    # Lyria became the default music source in v3.7.2 after winning the
+    # 5-way bake-off in spike 4 (Lyria > ElevenLabs > MusicGen > MiniMax >
+    # Stable Audio per user listening verdict). See references/audio-pipeline.md
+    # "Music sources" section for the full comparison and decision matrix.
+    #
+    # Rate limit: 10 RPM per Google docs. Each call returns a single
+    # 32.768-second clip; sample_count parameter exists in the docs but
+    # appears non-functional on the API-key auth path (always returns 1).
+    "vertex/lyria-002": {
+        "per_clip": 0.06,
+        "fixed_duration_sec": 32.768,
+    },
 }
 
 
