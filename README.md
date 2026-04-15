@@ -10,7 +10,7 @@ AI image and video generation plugin for Claude Code where **Claude acts as Crea
 Unlike simple API wrappers, Claude interprets your intent, selects domain expertise, constructs optimized prompts, and orchestrates generation for the best possible results — for both still images and video clips with synchronized audio.
 
 [![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-blue)](https://claude.ai/claude-code)
-[![Version](https://img.shields.io/badge/version-3.8.0-coral)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.8.1-coral)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Origin](https://img.shields.io/badge/origin-AgriciDaniel%2Fbanana--claude-gray)](https://github.com/AgriciDaniel/banana-claude)
 
@@ -38,6 +38,10 @@ Unlike simple API wrappers, Claude interprets your intent, selects domain expert
 ## Features
 
 Built on [AgriciDaniel/banana-claude](https://github.com/AgriciDaniel/banana-claude), extended with features driven by production use and research analysis of Google's prompting guidance:
+
+### Fabric Lip-Sync + Defensive Hardening (v3.8.1)
+
+New `/video lipsync` command pairs any face image with any audio file (including custom-designed ElevenLabs voices from `/video audio narrate`) to produce a lip-synced talking-head MP4 via VEED Fabric 1.0 — closing the v3.8.0 gap where VEO generated speech internally and Kling didn't accept audio at all. Also includes Cloudflare User-Agent hardening on the image-gen Replicate path, a new `_vertex_backend smoke-test` subcommand that validates v3.8.0 spike constraints without burning budget, and the final verdict on the user-requested Seedance 2.0 retest: **permanently rejected** (E005 filter triggers on every human subject tested).
 
 ### Kling v3 as Default Video Model (v3.8.0)
 
@@ -632,17 +636,19 @@ nano-banana-studio/                    # Claude Code Plugin
 │       ├── history.py                 # Session generation history and gallery export
 │       ├── multiformat.py             # Multi-format image converter (PNG/WebP/JPEG)
 │       └── batch.py                  # CSV batch workflow parser
-├── skills/video/                      # Video generation skill (Kling v3 Std default, VEO 3.1 backup)
+├── skills/video/                      # Video generation skill (Kling v3 Std default, VEO 3.1 backup, Fabric 1.0 lip-sync v3.8.1+)
 │   ├── SKILL.md                       # Video Creative Director orchestrator (v3.8.0: Kling default)
 │   ├── scripts/
 │   │   ├── video_generate.py          # Async video API with polling, --backend/--provider routing
-│   │   ├── _vertex_backend.py         # Vertex AI helper (v3.6.0) — URL composer, request body builder, response parser, --diagnose CLI
-│   │   ├── _replicate_backend.py      # Replicate helper (v3.8.0) — Kling v3 Std request builder, full 6-status enum parser, --diagnose CLI
+│   │   ├── _vertex_backend.py         # Vertex AI helper (v3.6.0) — URL composer, request body builder, response parser, --diagnose + --smoke-test CLIs (v3.8.1)
+│   │   ├── _replicate_backend.py      # Replicate helper (v3.8.0) — Kling v3 Std + Fabric 1.0 (v3.8.1), full 6-status enum parser, --diagnose CLI
 │   │   ├── video_sequence.py          # Multi-shot sequence production pipeline + review gate (v3.6.2/3.6.3, Kling tiers in v3.8.0)
 │   │   ├── video_extend.py            # DEPRECATED in v3.8.0 — requires --acknowledge-veo-limitations
+│   │   ├── video_lipsync.py           # v3.8.1 Fabric 1.0 lip-sync runner — image + audio → talking-head MP4
 │   │   └── video_stitch.py            # FFmpeg concat/trim/convert/info
 │   └── references/
-│       ├── kling-models.md            # v3.8.0 Kling v3 Std default — capabilities, multi_prompt, pricing
+│       ├── kling-models.md            # v3.8.0 Kling v3 Std default + v3.8.1 Seedance retest verdict
+│       ├── lipsync.md                 # v3.8.1 Fabric 1.0 audio-driven lip-sync — 2-step workflow with audio_pipeline
 │       ├── veo-models.md              # VEO model specs + v3.8.0 BACKUP ONLY status + Phase 2 Vertex constraints
 │       ├── video-prompt-engineering.md # 5-Part Video Framework, camera motion
 │       ├── video-domain-modes.md      # 6 domain modes + shot types for sequences

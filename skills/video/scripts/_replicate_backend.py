@@ -116,6 +116,23 @@ REPLICATE_MODELS = {
         "price_usd_per_8s_clip_pro": 0.16,
         "price_usd_per_15s_clip_pro": 0.30,
     },
+    # v3.8.1: Fabric 1.0 — audio-driven talking head lip-sync specialist.
+    # Closes the gap left by v3.8.0 (VEO chars can't speak external voices).
+    # Pair with audio_pipeline.py narrate output for custom ElevenLabs voices.
+    "veed/fabric-1.0": {
+        "family": "fabric",
+        "display_name": "VEED Fabric 1.0",
+        "resolutions": ["480p", "720p"],
+        "max_duration_s": 60,
+        "supports_audio_input": True,
+        "supports_image_input": True,
+        "image_formats": ["jpg", "jpeg", "png"],
+        "audio_formats": ["mp3", "wav", "m4a", "aac"],
+        # Pricing: Replicate does not publish Fabric per-call cost publicly
+        # in the model card. v3.8.1 verification will measure empirically
+        # and update this field before release.
+        "price_usd_per_call_estimate": 0.30,
+    },
 }
 
 
@@ -146,6 +163,26 @@ IMAGE_MIME_MAP = {
     ".png": "image/png",
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
+}
+
+
+# ─── Fabric 1.0 parameter constraints (v3.8.1+) ────────────────────
+# Sourced from dev-docs/veed-fabric-1.0-llms.md. Fabric is the lip-sync
+# specialist: image + audio → talking-head MP4. Dramatically simpler
+# input surface than Kling (no prompt, no multi_prompt, no negative_prompt).
+
+VALID_FABRIC_RESOLUTIONS = {"480p", "720p"}
+FABRIC_MAX_DURATION_S = 60
+MAX_FABRIC_IMAGE_BYTES = 10 * 1024 * 1024  # Conservative — Fabric doesn't publish
+MAX_FABRIC_AUDIO_BYTES = 50 * 1024 * 1024  # 60s at reasonable bitrates ≈ 1-5 MB
+
+# Audio extension to MIME type. Fabric model card lists: mp3, wav, m4a, aac.
+# Intentionally narrow: don't accept .ogg/.flac/.opus because they aren't listed.
+AUDIO_MIME_MAP = {
+    ".mp3": "audio/mpeg",
+    ".wav": "audio/wav",
+    ".m4a": "audio/mp4",
+    ".aac": "audio/aac",
 }
 
 
@@ -273,6 +310,43 @@ def image_path_to_data_uri(path):
             f"Image file too large ({mb:.1f} MB). "
             f"Kling v3 Std start_image/end_image limit is {cap_mb:.0f} MB "
             f"per the model card."
+        )
+    with open(p, "rb") as f:
+        raw = f.read()
+    b64 = base64.b64encode(raw).decode("ascii")
+    return f"data:{mime};base64,{b64}"
+
+
+def audio_path_to_data_uri(path):
+    """Read an audio file and return a single data URI string.
+
+    Format: "data:{mime};base64,{base64_data}"
+
+    Fabric 1.0 (v3.8.1+) accepts either HTTPS URLs or data URIs for the
+    `audio` field. Mirrors image_path_to_data_uri() but for audio: mp3,
+    wav, m4a, aac. Enforces a size cap matching ~60 seconds at typical
+    bitrates so users don't accidentally upload huge files.
+
+    Raises ReplicateValidationError if the file is missing, has an
+    unsupported extension, or exceeds the size cap.
+    """
+    p = Path(path)
+    if not p.exists():
+        raise ReplicateValidationError(f"Audio not found: {path}")
+    ext = p.suffix.lower()
+    mime = AUDIO_MIME_MAP.get(ext)
+    if not mime:
+        raise ReplicateValidationError(
+            f"Unsupported audio format '{ext}'. "
+            f"Fabric 1.0 accepts: {', '.join(sorted(AUDIO_MIME_MAP))}"
+        )
+    size = p.stat().st_size
+    if size > MAX_FABRIC_AUDIO_BYTES:
+        mb = size / (1024 * 1024)
+        cap_mb = MAX_FABRIC_AUDIO_BYTES / (1024 * 1024)
+        raise ReplicateValidationError(
+            f"Audio file too large ({mb:.1f} MB). "
+            f"Fabric 1.0 cap is {cap_mb:.0f} MB (~60 s at typical bitrates)."
         )
     with open(p, "rb") as f:
         raw = f.read()
@@ -413,6 +487,56 @@ def validate_kling_params(
         )
 
 
+def validate_fabric_params(*, image, audio, resolution="720p"):
+    """Validate Fabric 1.0 input against the model card's rules.
+
+    Rules enforced (all sourced from dev-docs/veed-fabric-1.0-llms.md):
+
+      1. resolution ∈ {"480p", "720p"}
+      2. image file exists and has extension in {.jpg, .jpeg, .png}
+      3. audio file exists and has extension in {.mp3, .wav, .m4a, .aac}
+
+    Fabric's input surface is dramatically simpler than Kling's — no prompt,
+    no multi_prompt, no duration parameter (derived from audio length), no
+    negative_prompt. The validator only has three things to check.
+
+    `image` and `audio` must be pathlib.Path objects (or anything Path()
+    can accept). Strings are also accepted.
+
+    Raises ReplicateValidationError on any rule violation. Returns None.
+    """
+    # 1. resolution
+    if resolution not in VALID_FABRIC_RESOLUTIONS:
+        raise ReplicateValidationError(
+            f"Invalid resolution '{resolution}'. "
+            f"Fabric 1.0 supports: {sorted(VALID_FABRIC_RESOLUTIONS)}."
+        )
+
+    # 2. image
+    image_path = Path(image)
+    if not image_path.exists():
+        raise ReplicateValidationError(f"Image not found: {image}")
+    image_ext = image_path.suffix.lower()
+    if image_ext not in IMAGE_MIME_MAP:
+        raise ReplicateValidationError(
+            f"Unsupported image format '{image_ext}'. "
+            f"Fabric 1.0 accepts: {', '.join(sorted(IMAGE_MIME_MAP))} "
+            f"per the model card."
+        )
+
+    # 3. audio
+    audio_path = Path(audio)
+    if not audio_path.exists():
+        raise ReplicateValidationError(f"Audio not found: {audio}")
+    audio_ext = audio_path.suffix.lower()
+    if audio_ext not in AUDIO_MIME_MAP:
+        raise ReplicateValidationError(
+            f"Unsupported audio format '{audio_ext}'. "
+            f"Fabric 1.0 accepts: {', '.join(sorted(AUDIO_MIME_MAP))} "
+            f"per the model card."
+        )
+
+
 # ─── Request body builder ───────────────────────────────────────────
 
 def build_kling_request_body(
@@ -460,6 +584,31 @@ def build_kling_request_body(
         # in ways that confuse downstream consumers.
         input_dict["multi_prompt"] = multi_prompt
     return {"input": input_dict}
+
+
+def build_fabric_request_body(image, audio, resolution="720p"):
+    """Build the JSON dict to serialize for Fabric 1.0 predictions.
+
+    Wraps the input parameters in the Replicate-required `{"input": {...}}`
+    envelope. Returns a dict ready to be JSON-serialized and POSTed.
+
+    Unlike build_kling_request_body(), there are no optional fields — Fabric
+    only takes image + audio + resolution. Simpler surface = simpler builder.
+
+    `image` and `audio` can be HTTPS URLs or data URIs (the caller handles
+    the file-path-to-data-URI conversion via image_path_to_data_uri() /
+    audio_path_to_data_uri() before calling this function).
+
+    Does NOT call validate_fabric_params() internally — callers should
+    validate separately so the error surface is predictable.
+    """
+    return {
+        "input": {
+            "image": image,
+            "audio": audio,
+            "resolution": resolution,
+        }
+    }
 
 
 # ─── Response parsers ───────────────────────────────────────────────
@@ -661,11 +810,27 @@ def _cmd_diagnose(args):
 
     print("\n  registered models:")
     for slug, info in REPLICATE_MODELS.items():
-        aspects = ", ".join(info["aspects"])
-        print(
-            f"    {slug:30s} — {info['display_name']} "
-            f"({info['min_duration_s']}-{info['max_duration_s']}s, {aspects})"
-        )
+        # Each family exposes different capability metadata. Format each
+        # family's row appropriately so the diagnose output doesn't KeyError
+        # on families with different capability shapes.
+        display = info.get("display_name", slug)
+        family = info.get("family", "?")
+        if family == "kling":
+            aspects = ", ".join(info.get("aspects", []))
+            min_d = info.get("min_duration_s", "?")
+            max_d = info.get("max_duration_s", "?")
+            print(
+                f"    {slug:30s} — {display} ({min_d}-{max_d}s, {aspects})"
+            )
+        elif family == "fabric":
+            resolutions = ", ".join(info.get("resolutions", []))
+            max_d = info.get("max_duration_s", "?")
+            print(
+                f"    {slug:30s} — {display} (lipsync, ≤{max_d}s, {resolutions})"
+            )
+        else:
+            # Unknown family — show the slug + display name and nothing else.
+            print(f"    {slug:30s} — {display}")
 
     print("\nAll checks passed. Replicate backend is reachable.")
     sys.exit(0)

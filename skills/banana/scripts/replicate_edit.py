@@ -28,6 +28,10 @@ POLL_TIMEOUT = 300  # seconds
 VALID_RESOLUTIONS = {"512", "1K", "2K", "4K"}
 VALID_OUTPUT_FORMATS = {"jpg", "png"}
 
+# v3.8.1: User-Agent for Replicate API. See replicate_generate.py for the
+# full rationale (Cloudflare WAF error 1010 hardening).
+REPLICATE_USER_AGENT = "nano-banana-studio/3.8.1 (+https://github.com/juliandickie/nano-banana-studio)"
+
 
 def _load_config_key():
     """Try to load REPLICATE_API_TOKEN from ~/.banana/config.json."""
@@ -47,6 +51,8 @@ def _api_request(url, api_key, data=None, method="GET"):
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
+        # v3.8.1: Cloudflare WAF hardening. See replicate_generate.py.
+        "User-Agent": REPLICATE_USER_AGENT,
     }
     body = json.dumps(data).encode("utf-8") if data else None
     req = urllib.request.Request(url, data=body, headers=headers, method=method)

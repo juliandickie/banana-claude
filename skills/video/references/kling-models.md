@@ -176,3 +176,48 @@ Per the Kling v3 Std model card's "Limitations" section, verbatim:
 - If the user needs Scene Extension v2 on an existing MP4 (Kling has no
   direct equivalent; use `video_extend.py --acknowledge-veo-limitations` only
   after accepting the spike 5 findings)
+
+## Seedance 2.0 retest outcome (v3.8.1, 2026-04-15)
+
+**Verdict: PERMANENTLY REJECTED for human-subject workflows. Non-human subjects work.**
+
+Spike 5 Phase 1 rejected ByteDance Seedance 2.0 on safety filter E005 with
+the bearded-man subject. v3.8.1 retested with 3 diverse Phase 2 subjects
+to see if the filter behaved differently:
+
+| Test | Subject | Result | Failure code |
+|---|---|---|---|
+| `test_02_talking_head` | Woman in home office | **FAILED** (5.5s wall) | `E005 — input/output flagged as sensitive` |
+| `test_06_action_sports` | Woman athlete doing kettlebell swing | **FAILED** (8.8s wall) | `E005 — input/output flagged as sensitive` |
+| `test_11_brand_mascot` | Cartoon robot | **SUCCESS** ($0.14, 123s wall) | — |
+
+**Pattern**: the E005 filter is consistent across Phase 1 and Phase 2 for
+**any human subject** — bearded man, woman in home office, female athlete
+all triggered it. Only the non-human cartoon robot mascot passed.
+
+**Implication for the plugin**: Seedance is NOT usable for the plugin's
+primary workflows (product demos, talking heads, social creator content)
+because those workflows overwhelmingly involve human subjects. A model
+that works on "1 out of 3" diverse subjects — and specifically fails on
+the most common subject type — can't be a reliable default or even a
+reliable backup.
+
+**Decision**: Seedance 2.0 is **NOT wired into the plugin** (neither as a
+default, backup, nor tertiary provider). v3.8.0's decision to go with
+Kling (primary) + VEO (opt-in backup) stands. If a user has a
+specifically non-human workflow (brand mascots, animated characters,
+CGI props), they can call Seedance directly via Replicate's SDK — but
+the plugin doesn't provide a first-class path.
+
+**Retest spend**: $0.14 (1 successful generation) + $0.48 (12 anchor
+images generated for the retest matrix). Total: $0.62. The spike harness
+idempotent skip + reservation logic prevented any wasted generation
+on the 2 failed cells — ledger correctly released the reservations.
+
+**What would change the verdict**: ByteDance relaxing the E005 filter
+specifically for human subjects. No timeline or public roadmap for this.
+If a user reports Seedance E005 changes via the Replicate playground,
+run the retest again with the same 3 subjects and re-evaluate.
+
+**Full retest artifacts**: `spikes/v3.8.0-provider-bakeoff/runs/phase2-2026-04-15T10-55-10Z/` contains the `meta.json` files with the full E005 error payloads.
+

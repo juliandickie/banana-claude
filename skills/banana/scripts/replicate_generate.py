@@ -29,6 +29,16 @@ OUTPUT_DIR = Path.home() / "Documents" / "nanobanana_generated"
 API_BASE = "https://api.replicate.com/v1/models"
 POLL_TIMEOUT = 300  # seconds
 
+# v3.8.1: User-Agent for Replicate API. Cloudflare's edge rules reject
+# the default Python-urllib/3.x user agent on some endpoints (HTTP 403
+# error 1010 — observed on /v1/account during v3.8.0 work on the video
+# side). The image-gen path currently works only because /v1/models/.../
+# predictions has more lenient Cloudflare rules, but this is defensive
+# hardening in case those rules tighten in the future. Deliberately
+# duplicated from _replicate_backend.REPLICATE_USER_AGENT (no cross-skill
+# import to avoid sys.path gymnastics).
+REPLICATE_USER_AGENT = "nano-banana-studio/3.8.1 (+https://github.com/juliandickie/nano-banana-studio)"
+
 VALID_RATIOS = {"1:1", "16:9", "9:16", "4:3", "3:4", "2:3", "3:2",
                 "4:5", "5:4", "21:9", "1:4", "4:1", "1:8", "8:1",
                 "match_input_image"}
@@ -79,6 +89,10 @@ def _api_request(url, api_key, method="GET", body=None):
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
+        # v3.8.1: send User-Agent to avoid Cloudflare WAF error 1010 if
+        # the image-gen endpoints ever tighten their bot-detection rules.
+        # See _replicate_backend.py for the video-side equivalent.
+        "User-Agent": REPLICATE_USER_AGENT,
     }
     data = json.dumps(body).encode("utf-8") if body else None
     req = urllib.request.Request(url, data=data, headers=headers, method=method)

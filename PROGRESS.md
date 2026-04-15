@@ -7,7 +7,7 @@
 
 - **Repo:** https://github.com/juliandickie/nano-banana-studio
 - **Origin:** https://github.com/AgriciDaniel/banana-claude (forked at v1.4.1, detached at v2.1.0)
-- **Current version:** 3.8.0
+- **Current version:** 3.8.1
 - **Local path:** `/Users/juliandickie/code/nano-banana-pro/nano-banana-studio/`
 - **Plugin layout:** `.claude-plugin/` + `skills/banana/` (image) + `skills/video/` (video) + `agents/`
 
@@ -540,6 +540,52 @@ This was the scheduled post-v3.7.3 polish release closing the known-issues debt 
 **Key insight from execution**: Spike 6's lesson ("consult the pinned dev-docs before running empirical spikes") applied here too — partway through writing my session plan, the user noted I hadn't referenced the dev-docs files (`kwaivgi-kling-v3-video-llms.md`, `replicate-openapi.json`, `replicate-mcp.md`, `replicate-llms.txt`). Cross-checking surfaced 6 material corrections to the initial plan: `Prefer: wait=0` is non-spec-compliant (regex requires N∈[1,60]), `aborted` is a 6th status enum value the spike's client didn't know about, Kling's output is a single URI string (not polymorphic), `aspect_ratio` is ignored when `start_image` is provided, `multi_prompt` total duration must equal the top-level `duration`, audio is English+Chinese only. These all made it into the implementation before any code was written, saving a full debugging round.
 
 **Session 17 status**: v3.8.0 is a shipping release, not a spike. Implementation complete; verification + commit + release queued for the remainder of this session.
+
+### Session 18 (2026-04-15, late evening, continuing from session 17) — v3.8.1 Implementation: Fabric + hardening bundle
+
+**Scope**: Four follow-up items approved after v3.8.0 shipped: Fabric 1.0 `/video lipsync` subcommand, User-Agent hardening on image-gen Replicate scripts, Seedance 2.0 retest (user-requested), and Vertex smoke-test subcommand. Target: v3.8.1 release in one focused session.
+
+**Approach**: Continued the v3.8.0 TDD discipline for the Fabric backend additions — wrote 10 failing tests from the Fabric model card first, verified RED (AttributeError on `build_fabric_request_body`), implemented the helpers in one pass, verified GREEN with all tests passing + v3.8.0 Kling tests regression-checked. Then built `video_lipsync.py` as a standalone script importing `_replicate_backend` for HTTP plumbing (zero duplicated Replicate logic).
+
+**What shipped**:
+
+1. **Fabric 1.0 backend additions to `_replicate_backend.py`**: new `REPLICATE_MODELS["veed/fabric-1.0"]` registry entry, `AUDIO_MIME_MAP` constant, `VALID_FABRIC_RESOLUTIONS` set, `FABRIC_MAX_DURATION_S`, `MAX_FABRIC_AUDIO_BYTES`, `audio_path_to_data_uri()` helper (mp3/wav/m4a/aac), `validate_fabric_params()` (image/audio/resolution rules from the Fabric model card), `build_fabric_request_body()` (wraps input in the `{"input": {...}}` envelope). The `_cmd_diagnose` function was also updated to be family-aware — it was crashing with KeyError on Fabric entries because the v3.8.0 version hardcoded Kling-specific fields (`aspects`, `min_duration_s`). Caught immediately via the diagnose CLI sanity check in Phase A.
+
+2. **New `skills/video/scripts/video_lipsync.py`** (~260 lines) — standalone runner for `/video lipsync`. Imports `_replicate_backend` for HTTP helpers, credential loading, validation, and data-URI encoding. Pre-flight validation catches invalid inputs before any API call (verified with `--image /tmp/no-such.png` and `.webp` rejection tests). Argparse surface is deliberately narrow: `--image`, `--audio`, `--resolution {480p,720p}`, `--output`, `--replicate-key`, `--poll-interval`, `--max-wait`. JSON output on success matches the existing `video_generate.py` shape.
+
+3. **User-Agent hardening applied to BOTH `replicate_generate.py` AND `replicate_edit.py`** (not just the generate script — the edit sibling has the same `_api_request()` function structure and the same vulnerability). Deliberately duplicated from `_replicate_backend.py` rather than imported — cross-skill imports would require sys.path gymnastics and the constant is 2 lines, not worth the coupling.
+
+4. **`smoke-test` subcommand on `_vertex_backend.py`** — sibling to `diagnose`. Runs 3 FREE probes: (1) preview ID → HTTP 404, (2) invalid aspect ratio "1:1" → HTTP 400 at submit-validation, (3) Gemini auth ping. Outputs markdown PASS/FAIL/WARN report with exit codes 0/1/2.
+
+5. **Seedance 2.0 retest harness additions**: new `MODEL_SEEDANCE` constant + `EXTRA_REPLICATE_MODELS` list + `build_input_for_seedance()` + `execute_seedance_cell()` + dispatch branch in `execute_test_cell()` + `--seedance-only` CLI flag + `_project_cost()` update to handle Seedance's per-call pricing + new roster entry in `phase2_tests.json`. All wired so `python3 phase2_run.py --confirm --seedance-only --tests ...` routes correctly. Verified via dry-run before the real spend.
+
+6. **Seedance 2.0 retest execution**: ran with `--tests test_02_talking_head,test_06_action_sports,test_11_brand_mascot` per the retest plan. Result: **2 of 3 FAILED with E005** on both human subjects; only the cartoon robot mascot succeeded. Verdict per my decision gate: **permanent rejection for the plugin's human-subject workflows**. Not wired into `_replicate_backend.py` or `video_generate.py`. Retest cost: $0.14 (1 success) + $0.48 (12 anchor images regenerated — reusable for future sessions).
+
+7. **All docs updated**: new `references/lipsync.md` (~180 lines), `references/kling-models.md` appended with the Seedance rejection section, SKILL.md updated with `/video lipsync` in Quick Reference + lipsync.md in Reference Docs, plugin CLAUDE.md file responsibilities table + 6 new Key Constraints entries covering Fabric 1.0, User-Agent hardening, Seedance verdict, Vertex smoke-test, and the Vertex drift finding.
+
+**Execution incidents worth documenting**:
+
+- **Smoke-test design bug + ~$3.60 unplanned VEO spend**: my first draft of the Vertex `smoke-test` subcommand submitted "minimal valid" VEO requests to test model reachability for preview + GA -001 IDs, assuming the spike 5 Phase 2 synchronous validation findings still held. They didn't — Vertex ACCEPTED `durationSeconds=5` at submit time on VEO 3.1 Lite GA -001, and the other probes submitted valid 8-second requests that generated real videos. Worst-case overspend: ~$3.60 across 3 VEO submissions. Caught immediately when reviewing the smoke-test output ("Submit SUCCEEDED on veo-3.1-generate-001 — budget was charged"). Fixed within the same Phase D by redesigning the probes to only use requests that reject at URL resolution (404) or synchronous submit validation (400 on aspect ratio). Re-ran the smoke test and all 3 probes PASS at $0. **Lesson**: smoke tests that send "minimal valid" requests are not safe. Always use intentionally-invalid probes whose rejection happens before billing.
+
+- **Vertex behavior drift from spike 5 Phase 2**: The smoke-test bug surfaced a real empirical finding — `durationSeconds=5` is now accepted at submit time on VEO 3.1 Lite GA -001. Either the constraint has relaxed, or Vertex's validation topology changed (synchronous → asynchronous). Documented in the smoke-test output's "untested constraints" section and in the plugin CLAUDE.md Key Constraints. Future sessions should re-verify other spike 5 findings before relying on them for production workflows.
+
+- **Budget recovery decision**: When I surfaced the $3.60 overspend to the user, the user chose "Proceed as planned" — continue with Seedance retest (~$0.54) + Fabric smoke test (~$0.30) + full docs/release/verification sequence. Total session spend projection updated to ~$4.50-5.00 (from the original $2.30-3.40 estimate). The overspend is documented transparently in the CHANGELOG's "v3.8.1 smoke-test-design-bug cost audit" research subsection.
+
+**Test results**:
+- 36 unit tests passing (19 Fabric + 17 v3.8.0 Kling) — no regressions
+- `_replicate_backend.py diagnose` works with both Kling and Fabric registered
+- `video_lipsync.py --help` shows correct argparse surface
+- `video_lipsync.py --image /tmp/no-such.png --audio /tmp/no-such.mp3` correctly fails with validation error before any API call
+- `_vertex_backend.py smoke-test` → 3/3 PASS, exit 0
+- Seedance retest → 1/3 PASS (cartoon robot), 2/3 FAIL with E005 (both human subjects)
+
+**Session 18 final session spend** (to be updated after Phase I/J):
+- Accidental VEO smoke-test probes: ~$3.60 worst case
+- Seedance retest: $0.62 ($0.14 success + $0.48 anchors)
+- Fabric smoke test (Phase I, pending): ~$0.30 estimate
+- **Running total**: ~$4.52
+
+**Key insight**: The pure-function `_replicate_backend.py` architecture from v3.8.0 is paying off exactly as predicted. Adding Fabric 1.0 required ~40 lines of new code (one registry entry, one builder, one validator, one audio data URI helper) and ZERO changes to the HTTP plumbing, auth, polling, or status-parsing. The entire Fabric backend addition took about 30 minutes from RED test to GREEN. Every new Replicate-based model added in the future should be this cheap.
 
 ## Expansion Roadmap
 

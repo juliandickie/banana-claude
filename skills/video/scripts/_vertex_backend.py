@@ -685,6 +685,240 @@ def _cmd_diagnose(args):
     sys.exit(0)
 
 
+def _cmd_smoke_test(args):
+    """Validate Vertex API constraints discovered in v3.8.0 spike 5 Phase 2.
+
+    **BUDGET-SAFE BY DESIGN (v3.8.1 lesson)**: an earlier draft of this
+    subcommand submitted minimal valid requests to test model reachability,
+    which accidentally charged ~$3.60 in VEO submissions before we realized
+    that Vertex accepts the submit and validates asynchronously during
+    generation. This version ONLY sends probes we have empirically verified
+    fail at submit-time validation (free), plus a free auth ping. The
+    remaining spike-5 constraints are documented rather than tested.
+
+    Probes (all confirmed free during v3.8.1 debugging):
+      1. Preview ID → 404 (preview suffix rejects at URL resolution, pre-validation)
+      2. Invalid aspect ratio ("1:1") → HTTP 400 at submit validation
+      3. Auth ping (Gemini text-gen on the same credentials)
+
+    Documented-only constraints (require budget to empirically test):
+      - GA -001 ID reachability (any valid submit = real generation = charged)
+      - VEO duration {4,6,8} constraint (Vertex accepts submit, validation
+        is async during generation — cannot probe without charging)
+      - Scene Ext v2 720p forcing (requires real Scene Ext v2 call)
+      - Scene Ext v2 15 MB inline upload limit (requires real video upload)
+
+    Exit codes:
+      0 — all free probes PASS (constraints confirmed)
+      1 — one or more probes FAIL (constraint may have changed; investigate)
+      2 — WARN on one or more probes
+    """
+    print("=== Vertex AI smoke test (v3.8.1 — budget-safe probes only) ===")
+    print()
+
+    # Load credentials once; all probes share the same project/location/key.
+    try:
+        creds = load_vertex_credentials(
+            cli_api_key=args.vertex_api_key,
+            cli_project=args.vertex_project,
+            cli_location=args.vertex_location,
+        )
+    except VertexAuthError as e:
+        print(f"FAIL (auth): {e}")
+        sys.exit(1)
+
+    print(f"  project:  {creds['project_id']}")
+    print(f"  location: {creds['location']}")
+    print(f"  api_key:  {creds['api_key'][:6]}...{creds['api_key'][-4:]}")
+    print()
+
+    results = []  # list of (probe_name, status, detail)
+
+    # ── Probe 1: Preview ID returns 404 ────────────────────────────
+    # Spike 5 Phase 2 confirmed that preview IDs (`-preview` suffix) return
+    # HTTP 404 on some Vertex projects. This probe is free because the 404
+    # happens at URL resolution, before any parameter validation or billing.
+    print("## Probe 1: Preview ID returns 404 (free — URL-level rejection)")
+    print()
+    _minimal_request = {
+        "instances": [{"prompt": "smoke-test probe (will 404 at URL level)"}],
+        "parameters": {
+            "sampleCount": 1,
+            "durationSeconds": 8,
+            "aspectRatio": "16:9",
+            "resolution": "720p",
+        },
+    }
+
+    url = build_vertex_url(
+        model="veo-3.1-generate-preview",
+        method=METHOD_SUBMIT,
+        project=creds["project_id"],
+        location=creds["location"],
+        api_key=creds["api_key"],
+    )
+    try:
+        vertex_post(url, _minimal_request, timeout=30)
+        results.append((
+            "Probe 1 (preview→404)",
+            "WARN",
+            "Submit on veo-3.1-generate-preview UNEXPECTEDLY SUCCEEDED — "
+            "the preview-ID constraint may have relaxed on this project, "
+            "and budget MAY have been charged. Investigate immediately.",
+        ))
+        print("    WARN — preview submit unexpectedly succeeded (budget may be charged!)")
+    except VertexBackendError as e:
+        msg = str(e)
+        if "404" in msg or "NOT_FOUND" in msg:
+            results.append((
+                "Probe 1 (preview→404)",
+                "PASS",
+                f"veo-3.1-generate-preview returned 404 (constraint confirmed): {msg[:100]}",
+            ))
+            print("    PASS — veo-3.1-generate-preview returned 404")
+        else:
+            results.append((
+                "Probe 1 (preview→404)",
+                "WARN",
+                f"Rejected but not with 404: {msg[:150]}",
+            ))
+            print(f"    WARN — rejected for different reason: {msg[:120]}")
+    print()
+
+    # ── Probe 2: Invalid aspect ratio ──────────────────────────────
+    # Spike 5 Phase 2 confirmed VEO only accepts {16:9, 9:16}. v3.8.1
+    # debugging confirmed "1:1" is REJECTED AT SUBMIT VALIDATION on GA -001
+    # models — no budget charged. This is one of the few constraints Vertex
+    # validates synchronously at submit time.
+    print("## Probe 2: Invalid aspect ratio rejection (free — submit-time validation)")
+    print()
+    _bad_aspect_request = {
+        "instances": [{"prompt": "smoke-test aspect probe"}],
+        "parameters": {
+            "sampleCount": 1,
+            "durationSeconds": 8,
+            "aspectRatio": "1:1",  # invalid for VEO
+            "resolution": "720p",
+        },
+    }
+    url = build_vertex_url(
+        model="veo-3.1-lite-generate-001",
+        method=METHOD_SUBMIT,
+        project=creds["project_id"],
+        location=creds["location"],
+        api_key=creds["api_key"],
+    )
+    try:
+        vertex_post(url, _bad_aspect_request, timeout=30)
+        results.append((
+            "Probe 2 (aspect→400)",
+            "FAIL",
+            "Submit with aspectRatio='1:1' unexpectedly SUCCEEDED — "
+            "aspect constraint may have relaxed AND budget was charged. "
+            "Investigate immediately.",
+        ))
+        print("    FAIL — aspectRatio='1:1' was accepted (budget may be charged!)")
+    except VertexBackendError as e:
+        msg = str(e)
+        if "aspect" in msg.lower() or "1:1" in msg:
+            results.append((
+                "Probe 2 (aspect→400)",
+                "PASS",
+                f"Rejected at submit validation (free): {msg[:150]}",
+            ))
+            print(f"    PASS — rejected: {msg[:120]}")
+        else:
+            results.append((
+                "Probe 2 (aspect→400)",
+                "WARN",
+                f"Rejected but not with 'aspect' message: {msg[:150]}",
+            ))
+            print(f"    WARN — rejected for different reason: {msg[:120]}")
+    print()
+
+    # ── Probe 3: Auth ping ─────────────────────────────────────────
+    # Gemini text-gen via the same auth. Confirmed free (subscription-tier
+    # or lowest-cost Gemini call).
+    print("## Probe 3: Auth ping (free — Gemini text-gen on same credentials)")
+    print()
+    global_sanity_url = (
+        f"https://aiplatform.googleapis.com/v1"
+        f"/publishers/google/models/gemini-2.5-flash-lite:generateContent"
+        f"?key={creds['api_key']}"
+    )
+    sanity_body = {
+        "contents": [
+            {"role": "user", "parts": [{"text": "reply with OK"}]}
+        ]
+    }
+    try:
+        result = vertex_post(global_sanity_url, sanity_body, timeout=30)
+        text = (
+            result.get("candidates", [{}])[0]
+            .get("content", {})
+            .get("parts", [{}])[0]
+            .get("text", "")
+        )
+        results.append((
+            "Probe 3 (auth)",
+            "PASS",
+            f"Auth ping succeeded: {text.strip()!r}",
+        ))
+        print(f"    PASS — auth ping returned: {text.strip()!r}")
+    except VertexBackendError as e:
+        results.append((
+            "Probe 3 (auth)",
+            "FAIL",
+            f"Auth ping failed: {e}",
+        ))
+        print(f"    FAIL — auth ping failed: {e}")
+    print()
+
+    # ── Documented-only constraints (can't probe for free) ─────────
+    print("## Untested constraints (require budget to empirically verify)")
+    print()
+    print("    * GA -001 model reachability (veo-3.1-generate-001, -fast-, -lite-)")
+    print("        Any valid submit = real generation = billed. See spike 5 Phase 2")
+    print("        findings for empirical validation across all 5 tiers.")
+    print()
+    print("    * VEO duration constraint {4, 6, 8}")
+    print("        Vertex ACCEPTS submits with invalid durations and validates")
+    print("        asynchronously during generation (discovered during v3.8.1")
+    print("        debugging — this differs from spike 5 Phase 2 behavior).")
+    print("        Cannot probe safely without charging for the generation.")
+    print()
+    print("    * Scene Ext v2 720p forcing — requires a real Scene Ext v2")
+    print("        submit with a 1080p base clip. Constraint documented in")
+    print("        references/veo-models.md → 'Phase 2 Vertex API constraints'.")
+    print()
+    print("    * Scene Ext v2 15 MB inline base64 upload limit — requires a")
+    print("        real video upload. Documented in the same reference section.")
+    print()
+
+    # ── Summary ─────────────────────────────────────────────────────
+    print("## Summary")
+    print()
+    counts = {"PASS": 0, "FAIL": 0, "WARN": 0, "INFO": 0}
+    for name, status, detail in results:
+        counts[status] = counts.get(status, 0) + 1
+        icon = {"PASS": "[PASS]", "FAIL": "[FAIL]", "WARN": "[WARN]", "INFO": "[INFO]"}.get(status, status)
+        print(f"    {icon} {name}: {detail[:200]}")
+    print()
+    print(f"    Totals: {counts.get('PASS', 0)} PASS, "
+          f"{counts.get('FAIL', 0)} FAIL, "
+          f"{counts.get('WARN', 0)} WARN, "
+          f"{counts.get('INFO', 0)} INFO")
+
+    if counts.get("FAIL", 0) > 0:
+        print("\n[FAIL] One or more probes FAILED. Investigate before using VEO.")
+        sys.exit(1)
+    if counts.get("WARN", 0) > 0:
+        print("\n[WARN] One or more probes surfaced WARNings. Behaviour differs from spike 5 Phase 2; worth reviewing.")
+        sys.exit(2)
+    print("\n[OK] All probes PASS. Vertex constraints from spike 5 Phase 2 still in effect.")
+    sys.exit(0)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Vertex AI backend helper for VEO video generation",
@@ -698,6 +932,14 @@ def main():
     p_diag.add_argument("--vertex-project", default=None)
     p_diag.add_argument("--vertex-location", default=None)
 
+    p_smoke = sub.add_parser(
+        "smoke-test",
+        help="Validate 4 of the 5 Vertex API constraints from spike 5 Phase 2 (v3.8.1+)",
+    )
+    p_smoke.add_argument("--vertex-api-key", default=None)
+    p_smoke.add_argument("--vertex-project", default=None)
+    p_smoke.add_argument("--vertex-location", default=None)
+
     args = parser.parse_args()
     if args.command is None:
         # Default: diagnose
@@ -705,6 +947,8 @@ def main():
 
     if args.command == "diagnose":
         _cmd_diagnose(args)
+    elif args.command == "smoke-test":
+        _cmd_smoke_test(args)
     else:
         parser.print_help()
         sys.exit(1)

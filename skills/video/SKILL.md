@@ -28,7 +28,8 @@ argument-hint: "[generate|animate|sequence|extend|stitch|cost|status] <idea, pat
 | `/video sequence review --plan PATH --storyboard DIR` | Generate REVIEW-SHEET.md — mandatory approval gate in v3.6.3+ |
 | `/video sequence generate --storyboard PATH [--skip-review]` | Batch-generate clips from approved frames (review-gated) |
 | `/video sequence stitch --clips DIR --output PATH` | Assemble clips into final sequence |
-| `/video extend <clip> [--to Ns]` | Extend a clip (+7s per hop, max 148s) |
+| `/video extend <clip> [--to Ns]` | Extend a clip (+7s per hop, max 148s) — **DEPRECATED in v3.8.0**, requires `--acknowledge-veo-limitations` |
+| `/video lipsync --image FACE --audio AUDIO [--resolution 480p\|720p]` | **v3.8.1** lip-sync a face image to audio via Fabric 1.0 — pairs perfectly with `/video audio narrate` custom voices |
 | `/video stitch <clips...>` | Concatenate arbitrary clips via FFmpeg |
 | `/video audio pipeline --video V --text "..." --music-prompt "..." [--music-source lyria\|elevenlabs]` | **v3.7.1+v3.7.2** end-to-end: parallel TTS + music (Lyria default, ElevenLabs alt), mix, swap into video |
 | `/video audio narrate --text "..." [--voice ROLE]` | **v3.7.1** generate ElevenLabs TTS narration only |
@@ -283,7 +284,8 @@ Check FFmpeg: `which ffmpeg` (required for extend/stitch/trim)
 ## Reference Documentation
 
 Load on-demand -- do NOT load all at startup:
-- `references/kling-models.md` -- **v3.8.0+** Kling v3 Std default model, capabilities, multi_prompt JSON schema, pricing, extended workflows, known limitations
+- `references/kling-models.md` -- **v3.8.0+** Kling v3 Std default model, capabilities, multi_prompt JSON schema, pricing, extended workflows, known limitations, **v3.8.1 Seedance retest verdict**
+- `references/lipsync.md` -- **v3.8.1+** Fabric 1.0 audio-driven lip-sync: when to use it, 2-step workflow with audio_pipeline.py narrate, cost compared to alternatives
 - `references/video-prompt-engineering.md` -- 5-Part Video Framework, templates, camera motion vocabulary
 - `references/veo-models.md` -- VEO model specs, pricing, rate limits, v3.8.0 "BACKUP ONLY" status, Phase 2 Vertex API constraints, tier comparison
 - `references/video-domain-modes.md` -- 6 domain modes with modifier libraries, shot types for sequences
