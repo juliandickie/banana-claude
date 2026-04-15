@@ -579,11 +579,19 @@ This was the scheduled post-v3.7.3 polish release closing the known-issues debt 
 - `_vertex_backend.py smoke-test` → 3/3 PASS, exit 0
 - Seedance retest → 1/3 PASS (cartoon robot), 2/3 FAIL with E005 (both human subjects)
 
-**Session 18 final session spend** (to be updated after Phase I/J):
+**Session 18 final session spend** (Phase I closed ad-hoc post-release; authoritative dashboard data captured in session 19):
 - Accidental VEO smoke-test probes: ~$3.60 worst case
 - Seedance retest: $0.62 ($0.14 success + $0.48 anchors)
-- Fabric smoke test (Phase I, pending): ~$0.30 estimate
-- **Running total**: ~$4.52
+- Fabric smoke test (Phase I): **3 successful runs on 2026-04-15 post-release**, confirmed via Replicate predictions dashboard:
+  - `w36styf3c9rmw0cxj3cbyvnxz8` — 8s@720p, 161s wall (cold start), **$1.20**
+  - `j3qp5ndaanrmr0cxj4qrnrhhf4` — 7s@720p, 123s wall (warm), **$1.05**
+  - `55qej5ghs1rmw0cxj4wr1wjgdg` — 7s@720p, 125s wall (warm), **$1.05**
+  - **Fabric total actual: $3.30** (3.7× higher than the $0.90 the speculative $0.30/call model-card estimate had predicted)
+- **Running total: ~$7.52 actual** (vs the ~$5.12 session-18-closing estimate that missed Fabric's real rate by ~$2.40)
+
+**Phase I closure note** (added in session 19, 2026-04-15): The Fabric smoke test ran 3 times interactively via `video_lipsync.py` after v3.8.1 shipped at 12:44 UTC. All 3 runs succeeded — prediction IDs and empirical wall times were first recovered in session 19 from the Replicate `/v1/predictions?limit=30` endpoint (stdout wasn't captured at invocation time), and then the authoritative per-prediction cost data came from a screenshot of the Replicate predictions dashboard web UI that the user pasted into the session. Files still on disk: `/tmp/v3.8.1-smoke-test/face.png` + 3 narration MP3s + 3 output MP4s. Real v3.8.1 process gap surfaced: when a structured phase (Phase I) gets pushed to ad-hoc interactive testing, the doc writeback doesn't happen automatically — the session 18 budget-cap pivot meant Phase I ran but Phase J (docs update + commit) never did. Candidate v3.8.x fix: wire `video_lipsync.py` into `cost_tracker.py` (straightforward now that the $0.15/s formula is known) so every invocation leaves a breadcrumb regardless of whether it was called from a structured phase or from an ad-hoc terminal prompt.
+
+**Pricing correction finding** (session 19, 2026-04-15): The `~$0.30/call` figure in session 18's first lipsync.md draft was speculative — not grounded in any authoritative source, since the dev-doc `veed-fabric-1.0-llms.md` has no pricing field, Replicate's public model page has no pricing, and the Replicate API exposes no `cost_usd`. **Real Fabric pricing is ~$0.15 per second of output video** — linear, cold-start-independent, dashboard-verified across 3 data points ($1.05 for 7s × 2, $1.20 for 8s × 1 = perfect $0.150/s fit). Cost ceiling at the 60s Fabric maximum is **$9.00**. This **inverts the "Fabric cheaper than VEO Lite" claim** that was in the cost comparison table in lipsync.md — Fabric is now ~2.5× MORE expensive than VEO Lite per clip ($1.05/7s vs $0.40/8s), though it remains the only path to pair a custom-designed ElevenLabs voice with a visible face. lipsync.md cost sections fully rewritten in session 19 with the authoritative formula, a 3-row dashboard-data table, and an explicit "superseded claim" callout so this speculation doesn't re-enter a future draft. CLAUDE.md Fabric constraint also updated with the authoritative data.
 
 **Key insight**: The pure-function `_replicate_backend.py` architecture from v3.8.0 is paying off exactly as predicted. Adding Fabric 1.0 required ~40 lines of new code (one registry entry, one builder, one validator, one audio data URI helper) and ZERO changes to the HTTP plumbing, auth, polling, or status-parsing. The entire Fabric backend addition took about 30 minutes from RED test to GREEN. Every new Replicate-based model added in the future should be this cheap.
 

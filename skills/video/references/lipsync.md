@@ -38,7 +38,7 @@ the workflow the v3.7.x audio stack was always pointing at:
 | Output resolution | **480p** or **720p** (no 1080p or 4K) |
 | Maximum output duration | **60 seconds** (driven by audio length) |
 | Output format | MP4 (single URI string from Replicate) |
-| Pricing | Approximately $0.30/call — estimate only; v3.8.1 verification measures empirically |
+| Pricing | **~$0.15 per second of output video** — authoritative, verified 2026-04-15 via Replicate predictions dashboard. Linear formula, cold-start-independent. A 7s clip = $1.05, 8s = $1.20, 60s maximum = $9.00. See §Empirical verification (v3.8.1). |
 
 **Important**: Fabric does NOT generate new content from a prompt. It only
 drives the existing image's face to match the audio's speech. Everything
@@ -108,8 +108,10 @@ python3 skills/video/scripts/video_lipsync.py \
 # Output: ~/Documents/nanobanana_generated/lipsync_<timestamp>.mp4
 ```
 
-Total cost: ~$0.08 (face image) + ~$0.30 (Fabric lip-sync) + ElevenLabs
-subscription. Wall time: ~2-3 minutes for all 3 steps.
+Total cost: ~$0.08 (face image) + **~$1.05** (Fabric lip-sync at $0.15/s × 7s)
++ ElevenLabs subscription ≈ **$1.13**. Wall time: ~2-3 minutes for all 3 steps.
+The Fabric component is the dominant cost — see §Empirical verification for
+the per-second pricing formula and the $9.00 cost ceiling at 60s output.
 
 ## Known limitations (from the Fabric model card)
 
@@ -157,14 +159,97 @@ its own script; the `_*_backend.py` helpers are shared.
 
 | Workflow | Approx cost | Notes |
 |---|---|---|
-| `/video lipsync` (Fabric, 720p, ~8s audio) | ~$0.30 | Talking head only, no motion |
+| `/video lipsync` (Fabric, 720p, 7s audio) | **$1.05** | $0.15/s output. Talking head only, no motion. |
+| `/video lipsync` (Fabric, 720p, 8s audio) | **$1.20** | Same $0.15/s rate; cold-start adds wall time but not cost. |
+| `/video lipsync` (Fabric, 720p, 60s max) | **$9.00** | The cost ceiling. Split longer narrations across multiple clips if cost matters. |
 | `/video generate --provider kling` (8s, 1080p) | $0.16 | Full motion + native audio, but no custom voice |
 | `/video generate --provider veo --tier lite` (8s) | $0.40 | Full motion + VEO-generated voice, no custom voice |
 | `audio_pipeline.py pipeline` (8s) | ~$0.06-0.10 | Audio only, no visual |
-| Kling + Fabric (compose separately) | ~$0.46 | Motion from Kling, lip-sync overlay from Fabric — but these don't auto-compose. Manual workflow. |
+| Kling + Fabric (compose separately) | ~$1.21 ($0.16 + $1.05) | Motion from Kling, lip-sync overlay from Fabric — manual workflow, no auto-compose. |
 
-Fabric at ~$0.30 is cheaper than VEO Lite at $0.40 for the narrow
-talking-head use case, while giving you full control over the voice.
+**Fabric at $1.05-$1.20 per 7-8s clip is ~2-3× MORE expensive than VEO Lite**
+($0.40/8s) — the reverse of what session 18's first draft of this doc claimed.
+Fabric is still the only path to pair a custom-designed ElevenLabs voice with
+a visible face — VEO generates speech internally (no external audio input)
+and Kling doesn't accept audio input at all. **The trade-off is voice-control
+for cost**, not voice-control plus savings. For cost-sensitive workflows where
+the voice identity doesn't have to match a specific brand voice, use `/video
+generate --provider veo --tier lite` with dialogue in the prompt instead —
+it's roughly one-third the cost.
+
+## Empirical verification (v3.8.1)
+
+`/video lipsync` was verified end-to-end via three successful Replicate
+predictions on 2026-04-15 using a Banana-generated portrait + an ElevenLabs
+custom voice (the `narrator_female` voice designed specifically for this test
+during session 18 — see `~/.banana/config.json` `custom_voices.narrator_female`).
+
+| Metric | Cold start (run 1) | Warm (run 2) | Warm (run 3) |
+|---|---|---|---|
+| Prediction ID | `w36styf3c9rmw0cxj3cbyvnxz8` | `j3qp5ndaanrmr0cxj4qrnrhhf4` | `55qej5ghs1rmw0cxj4wr1wjgdg` |
+| `predict_time` (Replicate metrics) | **161.04 s** | **123.44 s** | **125.22 s** |
+| Output duration | 8 s | 7 s | 7 s |
+| Output resolution | 720p | 720p | 720p |
+| Output size (downloaded MP4) | 5.4 MB | 4.5 MB | 4.5 MB |
+| Status | succeeded | succeeded | succeeded |
+
+**Key operational findings:**
+
+- **Cold-start penalty is ~36 seconds.** The first Fabric call of a batch hits
+  a fresh Replicate worker and takes ~161s wall time; subsequent warm calls
+  settle at ~125s. For interactive use the default `--max-wait 600` has
+  plenty of headroom, but if you're queuing a large batch expect the first
+  call to be the slowest.
+- **Output duration matches audio duration.** Fabric does not pad or trim —
+  a 7s audio input produces a 7s video output.
+- **End-to-end submission + poll + download works.** All three runs completed
+  with `data_removed: False`, valid MP4 outputs, zero errors. This was the
+  first time `video_lipsync.py` was exercised against the real Replicate API
+  beyond the validation-layer unit tests that shipped with v3.8.1.
+
+**Cost per prediction** — authoritative, extracted from the Replicate
+predictions dashboard at `replicate.com/predictions` on 2026-04-15:
+
+| Run | Output duration | Wall time | Approximate cost | Implied rate |
+|---|---|---|---|---|
+| Run 1 (cold start) | 8 s | 2m 41.2s | **$1.20** | $0.150/s |
+| Run 2 (warm) | 7 s | 2m 3.6s | **$1.05** | $0.150/s |
+| Run 3 (warm) | 7 s | 2m 5.4s | **$1.05** | $0.150/s |
+
+**Fabric pricing is linear at ~$0.15 per second of output video.** The
+cold-start penalty (~36s extra wall time on the first call of a batch) adds
+latency but does NOT increase cost — Replicate bills Fabric on output
+duration, not on GPU wall time. The formula is
+`cost ≈ $0.15 × output_duration_seconds`, so a 5s clip ≈ $0.75, a 10s clip ≈
+$1.50, and the 60s maximum ≈ **$9.00**. Budget accordingly — a 60-second
+Fabric lip-sync is not a cheap action.
+
+**Why this isn't in the Replicate API**: `/v1/predictions/<id>` returns
+`metrics.predict_time` and `metrics.video_output_duration_seconds` but no
+`cost_usd` field. `/v1/models/veed/fabric-1.0` has `run_count` (22,603 as
+of 2026-04-15) but no pricing. Replicate's public web model page also has
+no pricing. The authoritative sources are the Replicate billing dashboard
+and the predictions list view at `replicate.com/predictions` (both web-only,
+logged-in). The $0.15/s rate in this section was extracted from the
+predictions dashboard's "Approximate cost" column during session 19
+verification — the user pasted the dashboard screenshot into the session
+as the final evidence.
+
+**Superseded claim**: session 18's first draft of this doc estimated
+Fabric at `~$0.30/call` and concluded "Fabric is cheaper than VEO Lite".
+Both parts were wrong — the estimate was ~3.5× too low, and Fabric is
+actually ~2-3× more expensive per clip than VEO Lite. Fabric is still the
+only viable path for custom-voice-to-visible-face, but the cost comparison
+is now a premium, not a discount.
+
+**Known follow-up**: `video_lipsync.py` does not currently integrate with
+`cost_tracker.py` (which only logs Gemini image-gen spend). With the
+$0.15/s formula now authoritative, wiring Fabric into the cost tracker is
+straightforward — the output duration is already in the Replicate poll
+response (`metrics.video_output_duration_seconds`), so per-prediction cost
+can be computed client-side as `$0.15 × output_duration` with no dashboard
+lookup required. v3.8.x candidate; would close the budget-tracking loop
+for Fabric permanently.
 
 ## Deferred to v3.9.x+
 
