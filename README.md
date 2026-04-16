@@ -10,7 +10,7 @@ AI image and video generation plugin for Claude Code where **Claude acts as Crea
 Unlike simple API wrappers, Claude interprets your intent, selects domain expertise, constructs optimized prompts, and orchestrates generation for the best possible results — for both still images and video clips with synchronized audio.
 
 [![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-blue)](https://claude.ai/claude-code)
-[![Version](https://img.shields.io/badge/version-3.8.3-coral)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.8.4-coral)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Origin](https://img.shields.io/badge/origin-AgriciDaniel%2Fbanana--claude-gray)](https://github.com/AgriciDaniel/banana-claude)
 

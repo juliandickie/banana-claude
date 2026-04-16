@@ -1295,6 +1295,24 @@ def main():
         result["video_input"] = args.video_input
 
     print(json.dumps(result, indent=2))
+
+    # Log cost to ~/.banana/costs.json (v3.8.3+). Shell out to cost_tracker.py
+    # to avoid cross-skill imports. Pass duration as the "resolution" parameter
+    # for per-second Replicate models; VEO models use the same pattern.
+    try:
+        _cost_tracker = str(Path(__file__).resolve().parent.parent.parent / "banana" / "scripts" / "cost_tracker.py")
+        _duration_key = f"{args.duration}s"
+        _prompt_summary = (args.prompt or "")[:80]
+        subprocess.run(
+            [sys.executable, _cost_tracker, "log",
+             "--model", model,
+             "--resolution", _duration_key,
+             "--prompt", _prompt_summary],
+            capture_output=True, timeout=5,
+        )
+    except Exception:
+        pass  # Cost logging is best-effort; never block generation output
+
     if backend == BACKEND_GEMINI_API:
         print(
             f"Note: The source download URI expires in {DOWNLOAD_RETENTION_HOURS} hours. "

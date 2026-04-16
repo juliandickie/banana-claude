@@ -107,22 +107,27 @@ PRICING = {
     "elevenlabs/eleven_multilingual_sts_v2": {
         "per_1k_chars": 0.18,
     },
-    # Vertex AI Lyria 2 (v3.7.2+). Lyria 2 generates fixed-length 32.768s
-    # instrumental music clips. Pricing is per-clip, not per-second:
-    #
-    #   $0.06 per call (Vertex AI publisher model billing, April 2026)
-    #
-    # Lyria became the default music source in v3.7.2 after winning the
-    # 5-way bake-off in spike 4 (Lyria > ElevenLabs > MusicGen > MiniMax >
-    # Stable Audio per user listening verdict). See references/audio-pipeline.md
-    # "Music sources" section for the full comparison and decision matrix.
-    #
-    # Rate limit: 10 RPM per Google docs. Each call returns a single
-    # 32.768-second clip; sample_count parameter exists in the docs but
-    # appears non-functional on the API-key auth path (always returns 1).
+    # Vertex AI Lyria 2 (v3.7.2+). Fixed-length 32.768s instrumental music.
+    # No longer the default music source as of v3.8.3 (ElevenLabs won the
+    # 12-genre blind bake-off 12-0). Available via --music-source lyria.
     "vertex/lyria-002": {
         "per_clip": 0.06,
         "fixed_duration_sec": 32.768,
+    },
+    # Replicate video models (v3.8.0+). Per-second pricing confirmed from
+    # Replicate public model pages and predictions dashboard.
+    # Sources:
+    #   Kling:      replicate.com/kwaivgi/kling-v3-video (model page)
+    #   DreamActor: replicate.com/bytedance/dreamactor-m2.0 (model page)
+    #   Fabric:     replicate.com/predictions dashboard (session 19, 2026-04-16)
+    "kwaivgi/kling-v3-video": {
+        "per_second": 0.02,
+    },
+    "bytedance/dreamactor-m2.0": {
+        "per_second": 0.05,
+    },
+    "veed/fabric-1.0": {
+        "per_second": 0.15,
     },
 }
 
@@ -168,7 +173,12 @@ def _save_ledger(ledger):
 
 
 def _lookup_cost(model, resolution, batch=False):
-    """Look up cost for a model+resolution combination."""
+    """Look up cost for a model+resolution combination.
+
+    For Replicate video models (keyed with per_second), pass the output
+    duration in seconds as the resolution string (e.g. "5s" or "8s").
+    For per_clip models (Lyria), resolution is ignored.
+    """
     model_pricing = PRICING.get(model)
     if not model_pricing:
         # Try partial match
@@ -180,6 +190,23 @@ def _lookup_cost(model, resolution, batch=False):
         print(f"Warning: Unknown model '{model}', using 3.1 Flash pricing", file=sys.stderr)
         model_pricing = PRICING["gemini-3.1-flash-image-preview"]
 
+    # Per-second video models (Replicate: Kling, DreamActor, Fabric; VEO)
+    if "per_second" in model_pricing:
+        try:
+            duration = float(resolution.rstrip("s"))
+        except (ValueError, AttributeError):
+            print(f"Warning: per-second model '{model}' needs duration as resolution (e.g. '8s'), got '{resolution}'", file=sys.stderr)
+            duration = 0
+        cost = round(model_pricing["per_second"] * duration, 4)
+        if batch:
+            cost *= BATCH_DISCOUNT
+        return cost
+
+    # Per-clip models (Lyria)
+    if "per_clip" in model_pricing:
+        return model_pricing["per_clip"]
+
+    # Standard resolution-keyed models (Gemini image-gen)
     valid_resolutions = {"512", "1K", "2K", "4K"}
     if resolution not in valid_resolutions:
         print(f"Warning: Unknown resolution '{resolution}', using 1K pricing", file=sys.stderr)

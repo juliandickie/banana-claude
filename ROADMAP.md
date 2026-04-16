@@ -224,38 +224,41 @@ These worked well and should be documented in the video-sequences reference so f
 | 6 | v3.7.1 — ElevenLabs audio replacement pipeline + custom voice design + strategic reset (12 empirical findings) | Large | Very High | **Shipped 2026-04-14** |
 | 7 | v3.7.2 — Lyria 2 as new default music source after 5-way bake-off (Lyria > ElevenLabs > MusicGen > MiniMax > Stable Audio); script renamed elevenlabs_audio.py → audio_pipeline.py; F13 spec-vs-quality finding | Medium | High | **Shipped 2026-04-14** |
 | 8 | v3.6.4 — `update-prompts` Gemini-vision subcommand (closes the prompt-drift loop from v3.6.3) | Medium | High | Deferred — superseded in priority by v3.7.x |
-| 9 | v3.7.3 — Spike 6 (banned-keywords re-validation, $0.70 actual) + prompt-engineering.md refresh aligned to Google's official Gemini 3.1 docs; documents the "publication-format anchors render literal magazine covers" failure mode | Small | Medium | **Shipped 2026-04-15** |
-| 9 | v3.7.4 — Audio polish bundle: real stereo mix, auto-measured per-voice WPM, ElevenLabs Instant Voice Cloning, multi-call Lyria with FFmpeg acrossfade for > 32.768s, shared client-side named-creator stripping across Lyria + Eleven Music | Medium | Medium | **Shipped 2026-04-15** |
-| 9a | v3.7.5+ — Professional Voice Cloning (PVC) subcommand, Lyria long-music cost warning, strip-list extensibility via config file | Medium | Low | After v3.8.0 |
+| 9 | v3.7.3 — Spike 6 (banned-keywords re-validation) + prompt-engineering.md refresh | Small | Medium | **Shipped 2026-04-15** |
+| 10e | v3.7.4 — Audio polish bundle: real stereo mix, auto-WPM, IVC, multi-call Lyria, creator stripping | Medium | Medium | **Shipped 2026-04-15** |
+| 10f | v3.7.5+ — Professional Voice Cloning (PVC) subcommand | Medium | Low | Deferred |
 | 10 | v3.8.0 — **Kling v3 Std as default video model, VEO 3.1 as opt-in backup only** — informed by spike 5 (sessions 16). Shipped in session 17 (2026-04-15). See `CHANGELOG.md` [3.8.0] section. | Large | High | **✅ Shipped 2026-04-15** |
 | 10a | v3.8.1 — **Seedance 2.0 retest with Phase 2 subjects** — completed 2026-04-15 in session 18. Result: 2 of 3 FAILED with E005 on both human subjects (woman in home office, woman athlete); only cartoon robot mascot succeeded. **Verdict: permanently rejected for human-subject workflows.** Not wired into the plugin. See `references/kling-models.md` "Seedance 2.0 retest outcome (v3.8.1)" section. Spend: $0.14 + $0.48 anchors. | Small | Medium | **✅ Shipped 2026-04-15** (verdict: rejected) |
 | 10b | v3.8.1 — **Vertex smoke-test subcommand** — completed 2026-04-15 in session 18. Landed as `_vertex_backend.py smoke-test` subparser (not a separate script) for discoverability. Tests 3 free probes: preview ID → 404, invalid aspect ratio → 400, auth ping. The 2 remaining constraints (GA -001 reachability, duration) are documented as "requires budget" in the output rather than auto-tested. Also surfaced a real Vertex drift from spike 5 Phase 2 (duration now accepted at submit, validated asynchronously). | Small | Medium | **✅ Shipped 2026-04-15** |
 | 10c | v3.8.1 — **Fabric 1.0 `/video lipsync` subcommand** — completed 2026-04-15 in session 18. New `video_lipsync.py` standalone runner + `lipsync.md` reference doc. Closes the v3.8.0 gap where custom ElevenLabs voices from `audio_pipeline.py narrate` couldn't reach visible character faces. Integrates Fabric 1.0 via existing `_replicate_backend.py` helpers — ~40 lines of new backend code. | Small | High | **✅ Shipped 2026-04-15** |
 | 10d | v3.8.1 — **Replicate User-Agent hardening** — completed 2026-04-15 in session 18. Applied to both `replicate_generate.py` AND `replicate_edit.py`. Defensive fix against Cloudflare WAF error 1010 that could tighten on `/v1/models/.../predictions` endpoints. | Trivial | Low | **✅ Shipped 2026-04-15** |
+| 10g | v3.8.2 — **Kling character consistency via start_image** — session 19 spike proved start_image + matched prompt = identity lock at 1080p. DreamActor deferred to v3.9.x. | Small | High | **✅ Shipped 2026-04-16** |
+| 10h | v3.8.3 — **ElevenLabs Music as default** — 12-genre blind bake-off, ElevenLabs 12-0 sweep. Lyria demoted to `--music-source lyria`. | Small | Medium | **✅ Shipped 2026-04-16** |
+| 10i | v3.8.4 — **Housekeeping**: Replicate cost tracking in video scripts, strip-list config extensibility, dangling-phrase fix, ROADMAP cleanup, GitHub releases for v3.8.2-3 | Small | Medium | **✅ Shipped 2026-04-16** |
 | 11 | Backlog cherry-picks — `output_gcs_uri`, `--num-videos`, parallel batch execution, object insertion, regional restrictions awareness | Various | Low-Medium | Cherry-pick as needed |
 
-### Deferred research spikes (will run before their target releases)
+### Completed research spikes
 
-The strategic reset session included six planned empirical spikes. Spikes 1, 2, 3 (audio architecture) shipped in v3.7.1. Spike 4 (Lyria + 5-way music bake-off) shipped in v3.7.2. Spike 6 (banned-keywords re-validation) shipped in v3.7.3. **Spike 5 completed in session 16** (2026-04-15 evening) with two phases spanning $53 total spend — findings locked in v3.8.0 scope.
+All 6 spikes from the strategic reset session are now completed:
 
-- ~~**Spike 5 — Character consistency bake-off**~~ **COMPLETED 2026-04-15 in session 16.** Two phases: (1) Phase 1 (initial 7-candidate bake-off) determined Kling v3 Std is the strongest candidate but kept VEO 3.1 Lite as default; (2) Phase 2 (15-shot-type head-to-head + tier comparison + extended 30s tests) REVERSED the Phase 1 default recommendation after user-verified playback revealed Kling wins 8 of 15 shot types while VEO wins 0. **User decision: Kling v3 Std becomes v3.8.0 default, VEO becomes opt-in backup only, VEO extended workflows disabled.** See `spikes/v3.8.0-provider-bakeoff/writeup/v3.8.0-bakeoff-findings.md` for the full findings doc. Implementation queued for Session 17 — see `spikes/v3.8.0-provider-bakeoff/NEXT_SESSION.md` and `spikes/v3.8.0-provider-bakeoff/IMPLEMENTATION_PLAN.md`.
+- **Spikes 1-3** (audio architecture): shipped in v3.7.1
+- **Spike 4** (5-way music bake-off): shipped in v3.7.2 (Lyria won). **Overridden by v3.8.3** 12-genre bake-off (ElevenLabs won 12-0).
+- **Spike 5** (character consistency bake-off): shipped in v3.8.0 (Kling default). **Extended by v3.8.2** (start_image identity lock discovery).
+- **Spike 6** (banned-keywords re-validation): shipped in v3.7.3.
+- **Seedance 2.0 retest**: completed in v3.8.1. **Verdict: permanently rejected** for human-subject workflows.
+- **DreamActor M2.0 smoke test**: completed in v3.8.2 session 19. Identity preservation works but Kling + matched prompt is cheaper and higher quality for the primary use case. DreamActor deferred to v3.9.x for real-footage-to-avatar niche.
 
-### Pending spikes for v3.8.x (after v3.8.0 ships)
-
-- **Seedance 2.0 retest** (~$2-3) — Phase 1 rejected Seedance on safety filter (E005 on bearded-man subject). User wants to retest with Phase 2's different subjects (woman in home office, athlete, fashion model, cartoon robot) to see if the filter behaves differently. Start with the 3 most diverse subject types (test_02 talking head, test_06 athlete, test_11 robot mascot) to confirm the filter isn't universally restrictive before committing to the full 15-test matrix. See the "Deferred to v3.8.x" section in `spikes/v3.8.0-provider-bakeoff/NEXT_SESSION.md` for the full retest plan.
-
-### Future research backlog (post-v3.7.4)
+### Future research backlog
 
 Items that came up during sessions 12–15 but don't have committed target releases yet. Most of the v3.7.1/v3.7.2 polish debt from the earlier version of this list (multi-call Lyria, stereo mix, auto-WPM, IVC) shipped in v3.7.4 — this list is now forward-looking rather than known-issues.
 
 **Audio research:**
-- **Lyria-vs-ElevenLabs head-to-head genre bake-off**. v3.7.2's spike 4 tested both providers with a single "cinematic nature documentary" prompt where Lyria won decisively. The user noted that **different genres might surface different model strengths** and would be worth a dedicated test: electronic, classical, folk, ambient, jazz, hip-hop, etc. Each genre × each provider = ~12 test calls = ~$1-2 cost. Could ship as a v3.7.x research release that updates `audio-pipeline.md` with per-genre provider recommendations. Targets a v3.7.x research release.
+- ~~**Lyria-vs-ElevenLabs head-to-head genre bake-off**~~ **COMPLETED in v3.8.3 (session 19, 2026-04-16).** 12-genre blind A/B test: ElevenLabs won all 12 genres. `DEFAULT_MUSIC_SOURCE` flipped to `"elevenlabs"`. Lyria available via `--music-source lyria`.
 
 **Audio polish still deferred:**
-- **Professional Voice Cloning (PVC) subcommand** — separate endpoint family (`/v1/voices/pvc/*`), needs 30+ minutes of audio + Creator+ plan + multi-step fine-tuning workflow. Reserved under the existing `source_type: "cloned"` enum as a future `design_method: "pvc"`. Targets v3.7.5+.
-- **Lyria long-music cost warning** — when `generate_music_lyria_extended()` would issue more than 5 calls (~$0.30), emit a pre-flight confirmation or require a `--confirm-extended-cost` flag. Tiny polish item.
-- **Strip-list extensibility via config file** — `NAMED_CREATOR_TRIGGERS` is currently hardcoded. A future release could move it to `~/.banana/config.json` so users can add their own terms without editing the script.
-- **"in the style of X" compound-phrase stripping** — when `strip_named_creators()` removes "Hans Zimmer" from "in the style of Hans Zimmer, warm strings", it leaves a dangling "in the style of , warm strings". The music providers ignore it, but a future pass could detect and strip the containing phrase as a unit.
+- **Professional Voice Cloning (PVC) subcommand** — separate endpoint family (`/v1/voices/pvc/*`), needs 30+ minutes of audio + Creator+ plan + multi-step fine-tuning workflow. Reserved under the existing `source_type: "cloned"` enum as a future `design_method: "pvc"`. Targets v3.9.x+.
+- ~~**Strip-list extensibility via config file**~~ **COMPLETED in v3.8.4.** `strip_named_creators()` now checks `~/.banana/config.json` `named_creator_triggers` list before falling back to the hardcoded defaults.
+- ~~**"in the style of X" compound-phrase stripping**~~ **COMPLETED in v3.8.4.** Dangling wrapper phrases ("in the style of", "inspired by", "reminiscent of", etc.) are now cleaned up after creator name removal.
 
 **Orthogonal video capabilities surfaced in session 15 dev-docs additions:**
 
@@ -264,7 +267,4 @@ Two model cards added to `../dev-docs/` in session 15 solve jobs the plugin curr
 - **`/video animate-character` via ByteDance DreamActor M2.0** — motion transfer from real filmed footage onto a generated avatar. Input: one character image + one driving video of a real person performing. Output: the character image animated with the driving video's motion. **Deferred to v3.9.x** — session 19 (2026-04-16) proved that Kling v3 Std's `start_image` + a character-matching prompt already handles the primary brand-consistency use case (generated characters doing scripted actions) natively at 2.5× lower cost and 1.5× higher resolution than DreamActor. DreamActor's remaining niche is narrower: real-footage-to-avatar workflows where a user films themselves and wants to map a generated avatar onto their performance. DreamActor smoke test results ($0.05/s, 694×1242 output, identity preserved) are documented in `kling-models.md` §Character Consistency.
 - **`/video lipsync` via VEED Fabric 1.0** — audio-driven talking head. Input: one face image + one audio file (ANY audio — including an ElevenLabs TTS output from the v3.7.x audio pipeline). Output: the face lip-synced to the audio. This is structurally different from VEO's "person speaking" mode: VEO generates the speech internally and can't accept external audio, so there's no way to have a VEO character speak an ElevenLabs voice-designed narrator line. Fabric closes that loop. **Integration sketch:** `audio_pipeline.py narrate --voice brand_voice --text "..."` → Fabric with a banana-generated face → ship-ready talking-head reel. Targets a v3.8.x research release.
 
-**v3.8.0 planning:**
-- Primary spike is still **spike 5** (character consistency bake-off) above. Candidate pool expanded from 3 to 7 generic t2v models as of session 15. Recommended 2-phase approach: first $5-8 narrows to 2-3 finalists, second phase runs the controlled side-by-side.
-
-Total deferred spike budget: ~$25-30 (spike 5 at $15-25, optional genre bake-off at $1-2, DreamActor + Fabric smoke tests at ~$1 each).
+**All planned spikes completed.** No remaining deferred spike budget. Future spikes will be scoped and budgeted per-session as needed.

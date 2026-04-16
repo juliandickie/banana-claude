@@ -280,6 +280,10 @@ def main():
     output_path = _download_output(output_url, args.output)
     gen_time = round(time.time() - gen_start, 1)
 
+    # Pull output duration from Replicate metrics if available
+    metrics = poll_result.get("metrics") if isinstance(poll_result, dict) else {}
+    output_duration = (metrics or {}).get("video_output_duration_seconds", 0)
+
     result = {
         "path": output_path,
         "model": FABRIC_MODEL_SLUG,
@@ -287,9 +291,27 @@ def main():
         "source_image": args.image,
         "source_audio": args.audio,
         "generation_time_seconds": gen_time,
+        "output_duration_seconds": output_duration,
         "backend": "replicate",
     }
     print(json.dumps(result, indent=2))
+
+    # Log cost to ~/.banana/costs.json (v3.8.3+). Shell out to cost_tracker.py
+    # to avoid cross-skill imports. Fabric cost = $0.15/s × output duration.
+    if output_duration > 0:
+        try:
+            import subprocess as _sp
+            _cost_tracker = str(Path(__file__).resolve().parent.parent.parent / "banana" / "scripts" / "cost_tracker.py")
+            _duration_key = f"{output_duration}s"
+            _sp.run(
+                [sys.executable, _cost_tracker, "log",
+                 "--model", FABRIC_MODEL_SLUG,
+                 "--resolution", _duration_key,
+                 "--prompt", f"lipsync {args.resolution}"],
+                capture_output=True, timeout=5,
+            )
+        except Exception:
+            pass  # Cost logging is best-effort
 
 
 if __name__ == "__main__":

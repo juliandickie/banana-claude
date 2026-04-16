@@ -932,6 +932,37 @@ NAMED_CREATOR_TRIGGERS = [
 ]
 
 
+def _load_custom_triggers() -> list[str] | None:
+    """Load user-defined strip triggers from ~/.banana/config.json if present.
+
+    Returns the list if the config has a `named_creator_triggers` key, else None
+    (meaning: fall back to the hardcoded NAMED_CREATOR_TRIGGERS list).
+    """
+    try:
+        cfg = _load_config()
+        custom = cfg.get("named_creator_triggers")
+        if isinstance(custom, list) and custom:
+            return custom
+    except Exception:
+        pass
+    return None
+
+
+# Phrases that wrap creator names — when the creator is stripped, these
+# become dangling fragments ("in the style of , warm strings"). We detect
+# and clean them after the main strip pass.
+_DANGLING_PHRASES = [
+    "in the style of",
+    "inspired by",
+    "reminiscent of",
+    "like",
+    "à la",
+    "a la",
+    "channeling",
+    "evoking",
+]
+
+
 def strip_named_creators(prompt: str, triggers: list[str] | None = None) -> tuple[str, list[str]]:
     """Remove known copyrighted-creator triggers from a music prompt.
 
@@ -939,13 +970,18 @@ def strip_named_creators(prompt: str, triggers: list[str] | None = None) -> tupl
     match. If no triggers fire, returns the original prompt and an empty list.
     Whitespace is normalised after stripping to avoid double-spaces.
 
-    This is applied to BOTH Lyria and ElevenLabs Music by default because both
-    providers block these terms. Pass through unchanged by calling sites that
-    pre-validate another way or explicitly want raw prompts (none currently do).
+    Trigger list precedence:
+      1. Explicit `triggers` parameter (caller override)
+      2. `named_creator_triggers` list in ~/.banana/config.json (user override)
+      3. Hardcoded NAMED_CREATOR_TRIGGERS (default)
+
+    After stripping creator names, any dangling wrapper phrases ("in the style
+    of , warm strings") are cleaned up by detecting phrase + comma/end patterns.
     """
     if not prompt:
         return prompt, []
-    triggers = triggers or NAMED_CREATOR_TRIGGERS
+    if triggers is None:
+        triggers = _load_custom_triggers() or NAMED_CREATOR_TRIGGERS
     cleaned = prompt
     removed: list[str] = []
     low = cleaned.lower()
@@ -959,6 +995,23 @@ def strip_named_creators(prompt: str, triggers: list[str] | None = None) -> tupl
             idx = low.find(tlow)
     # Collapse double+ spaces and trim
     cleaned = " ".join(cleaned.split()).strip()
+
+    # Clean dangling wrapper phrases: "in the style of , warm strings" → "warm strings"
+    # Pattern: phrase + optional whitespace + comma (the comma that followed the name)
+    import re
+    for phrase in _DANGLING_PHRASES:
+        # "in the style of , rest" → "rest"
+        # "in the style of rest" (no comma, name was at end) → "rest"
+        pattern = re.compile(
+            r'\b' + re.escape(phrase) + r'\s*,?\s*',
+            re.IGNORECASE,
+        )
+        cleaned = pattern.sub(' ', cleaned)
+    # Re-collapse whitespace after dangling-phrase removal
+    cleaned = " ".join(cleaned.split()).strip()
+    # Fix leading comma if the phrase was at the start
+    cleaned = cleaned.lstrip(", ").strip()
+
     # De-duplicate removed list while preserving order
     seen: set[str] = set()
     dedup: list[str] = []
