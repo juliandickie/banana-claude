@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.2] - 2026-04-16
+
+### Headline
+
+**Kling character consistency via start_image: the primary path for brand-character multi-clip work.** Session 19's spike (8 predictions, ~$1.10) proved that Kling v3 Std's `start_image` + a character-matching text prompt preserves character identity across separate generations at full 1072x1928 resolution — 1.5x higher resolution and 2.5x cheaper per clip than DreamActor M2.0 ($0.02/s vs $0.05/s). The critical finding: prompt engineering is the variable, not the model architecture. When the prompt describes the same character as the start image, identity locks. When it describes a different character, Kling morphs completely within 5 seconds. DreamActor M2.0 is deferred to v3.9.x for its narrower real-footage-to-avatar niche (filming yourself performing, then mapping a generated avatar onto your motion). This release adds orchestrator guidance, a new reference section in kling-models.md, and SKILL.md updates so Claude knows when and how to use start_image for character consistency.
+
+### Added
+
+- **kling-models.md "Character Consistency via start_image (v3.8.2+)" section** (~60 lines) — new empirical section with the 6-run comparison table (2 DreamActor runs preserving identity at 694x1242, 2 Kling mismatched-prompt runs morphing completely, 2 Kling matched-prompt runs preserving identity at 1072x1928), the prompt-matching rule, orchestrator guidance for multi-clip workflows, decision matrix for when to use DreamActor instead, and confirmation that non-human characters work (spike 5 Phase 2 test_11 robot mascot, user-confirmed).
+- **CLAUDE.md key constraint** for start_image conditional identity lock — documents the prompt-matching rule, empirical evidence from session 19, DreamActor comparison data, and the finding that non-human characters are also supported.
+
+### Changed
+
+- **kling-models.md "Known limitations"** — character variation bullet updated from "adopt DreamActor" to "use start_image + matched prompt (see §Character Consistency)" as the primary recommendation.
+- **kling-models.md "When NOT to use Kling"** — reference-image bullet updated to distinguish VEO's multi-reference-image feature from Kling's start_image character consistency.
+- **Video SKILL.md Core Principle 5** — renamed to "Image-to-Video & Character Consistency"; added start_image + matched prompt guidance with pointer to kling-models.md.
+- **Video SKILL.md Step 5 character consistency rule** — updated to include `--first-frame` guidance alongside the existing "repeat exact identity phrasing" rule.
+- **ROADMAP.md** — DreamActor entry updated from v3.9.0 research release to "deferred to v3.9.x for real-footage-to-avatar niche."
+
+### Research
+
+- **Session 19 DreamActor + Kling start_image spike (8 runs, ~$1.10 total)**: 2 DreamActor M2.0 runs ($0.50) at $0.05/s (from replicate.com/bytedance/dreamactor-m2.0), 4 Kling start_image runs ($0.40), 2 Kling driving clips ($0.20). DreamActor preserves identity at 694x1242. Kling + matched prompt preserves identity at 1072x1928 — higher quality, lower cost, full prompt control. Kling + mismatched prompt morphs completely (proved prompt overrides start_image when they conflict). Spike artifacts at `/tmp/dreamactor-spike/`.
+
+### Not in v3.8.2
+
+- **DreamActor `/video animate-character` subcommand** — deferred to v3.9.x. The real-footage-to-avatar use case is valid but niche. Primary character consistency is handled by Kling start_image + matched prompt.
+- **Kling v3 Omni** — supports dedicated reference images (up to 7) but deferred from spike 5 for 25+ min wall time.
+- **Auto-resizing images to provider constraints** — face.jpg needed manual `sips -Z 1920` for DreamActor's bounds. A future helper would automate this.
+
 ## [3.8.1] - 2026-04-15
 
 ### Headline

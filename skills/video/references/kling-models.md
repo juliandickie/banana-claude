@@ -157,11 +157,82 @@ Per the Kling v3 Std model card's "Limitations" section, verbatim:
 - **Audio works best in English and Chinese** — other languages are unverified
 - **Character appearance can vary across separate generations** — important
   for extended workflows where continuity matters across multiple Kling calls.
-  For brand-character consistency, use the same `start_image` across sibling
-  calls or adopt the v3.8.x-candidate DreamActor motion-transfer approach
+  **v3.8.2 solution**: use the same `start_image` across sibling calls WITH
+  a character-matching prompt — see §Character Consistency via start_image
+  below. When the prompt describes the same character as the start image,
+  identity is preserved at full resolution. DreamActor M2.0 is an alternative
+  for real-footage-to-avatar workflows only — see the same section for the
+  decision matrix
 - **Complex physics interactions may not look fully natural**
 - **For longer videos, generate multiple clips and stitch them together**
   (this is exactly what the plugin's existing pipeline does)
+
+## Character Consistency via start_image (v3.8.2+)
+
+<!-- verified: 2026-04-16 via 6-run spike in session 19 -->
+
+Kling v3 Std's `start_image` serves as a **character identity lock** when
+used with a **character-matching prompt** — a prompt whose character
+description (age, hair, clothing, setting) matches the start image. This
+closes the "character variation across separate generations" limitation
+for the most common use case: brand spokesperson doing different actions.
+
+**The critical rule**: the text prompt MUST describe the same character as
+the start image. If the prompt describes a different person (different
+gender, age, ethnicity, or clothing), Kling will morph completely toward
+the prompted character within 5 seconds, abandoning the start image's
+identity. The start image is NOT an unconditional identity lock — it is
+conditional on prompt cooperation.
+
+### Empirical evidence (session 19 spike, 2026-04-16)
+
+6-run comparison using a Banana-generated professional portrait (woman,
+40s, dark hair, navy shirt, gold earrings) as the reference image:
+
+| Test | Prompt matches image? | Identity at frame 0 | Identity at frame 5s | Result |
+|---|---|---|---|---|
+| Kling + mismatched prompt (described a man) | No | Preserved | **Lost** — became the prompted man | FAILED |
+| Kling + mismatched prompt (described a different woman) | No | Preserved | **Lost** — became the prompted woman | FAILED |
+| Kling + matched prompt (gentle motion) | **Yes** | Preserved | **Preserved** | PASSED |
+| Kling + matched prompt (enthusiastic gestures) | **Yes** | Preserved | **Preserved** | PASSED |
+| DreamActor M2.0 + man driving video | N/A (no prompt) | Preserved | **Preserved** | PASSED |
+| DreamActor M2.0 + woman driving video | N/A (no prompt) | Preserved | **Preserved** | PASSED |
+
+### Kling vs DreamActor comparison
+
+| Metric | Kling + matched prompt | DreamActor M2.0 |
+|---|---|---|
+| Output resolution | **1072×1928** | 694×1242 |
+| Output bitrate | **7–8 MB / 5s** | 876 KB–1.05 MB / 5s |
+| Cost per second | **$0.02/s** | $0.05/s |
+| Creative control | Full text prompt | None (motion from video) |
+| Identity mechanism | Conditional (prompt must match) | Unconditional (image is anchor) |
+| Non-human characters | **Proven** (spike 5 test_11 robot mascot) | Proven (model card claims, untested by us) |
+
+### How to use for multi-clip brand consistency
+
+When a user wants multiple clips of the same character:
+
+1. Generate or receive a reference image of the character
+2. Analyze the image to extract character details (age, hair, clothing, setting)
+3. Write each clip's prompt to describe **the same character** doing different actions
+4. Pass the reference image as `--first-frame` on every Kling call
+5. Character identity persists across all clips at full 1080p resolution
+
+### When to use DreamActor instead
+
+DreamActor M2.0 (`bytedance/dreamactor-m2.0`, $0.05/s via Replicate) is
+the right tool when:
+
+- **Real filmed footage drives the motion**: you have a phone/webcam video
+  of a real person performing and want to re-skin them with a generated
+  brand avatar. DreamActor takes the video's motion + a reference image
+  and outputs the reference character performing the video's movements.
+- **Prompt engineering is impractical**: DreamActor has no text prompt, so
+  there is no risk of prompt-vs-image conflict.
+
+DreamActor integration is queued for v3.9.x as a `/video animate-character`
+subcommand — not a priority for v3.9.0.
 
 ## When NOT to use Kling
 
@@ -171,8 +242,10 @@ Per the Kling v3 Std model card's "Limitations" section, verbatim:
   and Standard preview IDs support 4K)
 - If the user needs video editing mode (not supported by Kling v3 Std; Kling
   v3 Omni has it but was deferred from spike 5 Phase 1 for 25+ min wall time)
-- If the user needs reference-image-guided generation (Kling v3 Std does not
-  support this; VEO 3.1 does via `referenceImages` at the instance level)
+- If the user needs VEO-style multi-reference-image-guided generation (Kling
+  v3 Std has `start_image` for single-image character consistency — see
+  §Character Consistency above — but does not support VEO 3.1's
+  `referenceImages` array for multiple reference sources at the instance level)
 - If the user needs Scene Extension v2 on an existing MP4 (Kling has no
   direct equivalent; use `video_extend.py --acknowledge-veo-limitations` only
   after accepting the spike 5 findings)

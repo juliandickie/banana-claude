@@ -10,7 +10,7 @@ AI image and video generation plugin for Claude Code where **Claude acts as Crea
 Unlike simple API wrappers, Claude interprets your intent, selects domain expertise, constructs optimized prompts, and orchestrates generation for the best possible results — for both still images and video clips with synchronized audio.
 
 [![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-blue)](https://claude.ai/claude-code)
-[![Version](https://img.shields.io/badge/version-3.8.1-coral)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.8.2-coral)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Origin](https://img.shields.io/badge/origin-AgriciDaniel%2Fbanana--claude-gray)](https://github.com/AgriciDaniel/banana-claude)
 
@@ -38,6 +38,10 @@ Unlike simple API wrappers, Claude interprets your intent, selects domain expert
 ## Features
 
 Built on [AgriciDaniel/banana-claude](https://github.com/AgriciDaniel/banana-claude), extended with features driven by production use and research analysis of Google's prompting guidance:
+
+### Character Consistency via start_image (v3.8.2)
+
+Kling's `start_image` feature now serves as a character identity lock for multi-clip brand work: generate a reference image once, then pass it as `--first-frame` on every Kling call with a character-matching prompt — and the character's face, hair, clothing, and accessories persist across separate generations at full 1080p. DreamActor M2.0 (tested in this release at $0.05/s) is deferred to v3.9.x for its narrower real-footage-to-avatar niche.
 
 ### Fabric Lip-Sync + Defensive Hardening (v3.8.1)
 

@@ -595,6 +595,35 @@ This was the scheduled post-v3.7.3 polish release closing the known-issues debt 
 
 **Key insight**: The pure-function `_replicate_backend.py` architecture from v3.8.0 is paying off exactly as predicted. Adding Fabric 1.0 required ~40 lines of new code (one registry entry, one builder, one validator, one audio data URI helper) and ZERO changes to the HTTP plumbing, auth, polling, or status-parsing. The entire Fabric backend addition took about 30 minutes from RED test to GREEN. Every new Replicate-based model added in the future should be this cheap.
 
+### Session 19 (2026-04-16) — v3.8.1 Phase I Closure + DreamActor Spike + Kling Character Consistency Discovery
+
+**Scope**: Three outcomes in one session: (1) close v3.8.1's Phase I/J loop that session 18 left open, (2) run the DreamActor M2.0 smoke test queued since the ROADMAP, (3) user-requested Kling start_image comparison that produced the session's biggest finding.
+
+**What shipped:**
+
+1. **v3.8.1 Phase I closed with authoritative Fabric pricing correction** — Fabric pricing is $0.15/s of output video (NOT the speculative $0.30/call). 3.5× higher than estimated, inverts the "Fabric cheaper than VEO Lite" claim. Commit `a0332bc` pushed.
+
+2. **DreamActor M2.0 smoke test (2 runs, ~$0.50)** — identity preserved perfectly at both first and last frames. Outputs at 694×1242 / $0.05/s via Replicate. Prediction IDs: `p3b5w0r181rmt0cxjfqsvc6by4`, `0kbh9ar23nrmy0cxjfqs8m88b8`.
+
+3. **Kling mismatched-prompt identity test (2 runs, $0.20)** — face.jpg + prompts describing different people. Kling morphed completely to the prompted character by frame 5s. Bad test design (contradictory prompt + image) but informative: proved prompt overrides start_image when they conflict.
+
+4. **Kling matched-prompt identity test (2 runs, $0.20)** — user-requested fair test. face.jpg + prompts describing THE SAME woman doing different actions. **Identity preserved perfectly** through 5 seconds at 1072×1928, 7.5–8.2 MB per clip. 1.5× higher resolution and 2.5× cheaper than DreamActor.
+
+5. **Decision: Kling + start_image + matched prompt is the primary path for character consistency.** DreamActor deferred to v3.9.x for the real-footage-to-avatar niche (filming yourself → DreamActor maps avatar onto your performance).
+
+6. **v3.8.2 release**: kling-models.md new §Character Consistency section, SKILL.md orchestrator guidance, CLAUDE.md key constraint, full docs + version bump.
+
+**Session spend**: ~$1.10 (8 Replicate predictions: 2 Kling driving $0.20, 2 DreamActor ~$0.50, 2 Kling mismatched $0.20, 2 Kling matched $0.20). **Cumulative since session 18: ~$8.62**.
+
+**Key insights**:
+
+- **Prompt engineering is the critical variable for Kling identity consistency, not the model architecture.** Same model, same start_image: matched prompt → identity preserved, mismatched prompt → identity replaced. The user's suggestion to retest with character-matching prompts produced the session's biggest finding.
+- **DreamActor's value is narrower than initially hypothesized.** Kling handles the primary use case (generated characters doing scripted actions) natively — cheaper, higher quality, full creative control. DreamActor's niche: real-footage-to-avatar motion transfer.
+- **Works for non-human characters too.** Spike 5 Phase 2 test_11 (cartoon robot mascot talking, waving, holding coffee) demonstrated effective identity preservation with a non-human start image (user-confirmed during this session).
+- **"Bad test design" is informative data.** The mismatched-prompt test proved HOW Kling resolves prompt-vs-image conflicts — the prompt wins completely within 5 seconds. This is a documented behavior pattern.
+
+**Spike artifacts**: `/tmp/dreamactor-spike/` with subdirectories for each test. Run script at `/tmp/dreamactor-spike/run_spike.py`.
+
 ## Expansion Roadmap
 
 See `ROADMAP.md` for the full prioritized feature roadmap.

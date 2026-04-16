@@ -13,8 +13,8 @@ authors:
 repository-code: "https://github.com/juliandickie/nano-banana-studio"
 url: "https://www.skool.com/ai-marketing-hub-pro"
 license: MIT
-version: "3.8.1"
-date-released: "2026-04-15"
+version: "3.8.2"
+date-released: "2026-04-16"
 keywords:
   - ai-image-generation
   - claude-code

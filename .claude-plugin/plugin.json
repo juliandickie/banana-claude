@@ -1,6 +1,6 @@
 {
   "name": "nano-banana-studio",
-  "version": "3.8.1",
+  "version": "3.8.2",
   "description": "AI image generation Creative Director powered by Google Gemini Nano Banana models. Claude interprets intent, selects domain expertise, constructs optimized prompts, and orchestrates Gemini for best results.",
   "author": {
     "name": "juliandickie",

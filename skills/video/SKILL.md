@@ -15,7 +15,7 @@ argument-hint: "[generate|animate|sequence|extend|stitch|cost|status] <idea, pat
 2. **Audio is Always Part of the Prompt** -- Both Kling v3 Std (default as of v3.8.0) and VEO 3.1 generate synchronized audio. Every prompt should include dialogue (in quotes), SFX (prefix "SFX:"), or ambient sound descriptions. **Kling audio works best in English and Chinese** per the model card — for other languages, consider generating without audio and using the audio_pipeline.py replacement path.
 3. **Clip Length Thinking** -- Kling supports 3-15 second single-call clips; VEO supports {4, 6, 8}. For sequences beyond 15 seconds, use `video_sequence.py` with independent shot calls stitched by FFmpeg.
 4. **Storyboard Before Generating** -- For sequences, generate still frame previews first. Video generation is expensive even on Kling ($0.16/8s; VEO Standard is $3.20/8s). Preview with images ($0.08/frame) before committing.
-5. **Image-to-Video** -- Animate existing assets from `/banana` for visual consistency. **Both Kling and VEO support start_image**; Kling also supports `end_image` for first-and-last-frame interpolation. **Caveat**: when passing a start image to Kling, the `aspect_ratio` parameter is IGNORED — output uses the start image's native aspect ratio per the Kling model card.
+5. **Image-to-Video & Character Consistency** -- Animate existing assets from `/banana` for visual consistency. **Both Kling and VEO support start_image**; Kling also supports `end_image` for first-and-last-frame interpolation. **For multi-clip character consistency (v3.8.2+)**: pass the same reference image as `--first-frame` on every Kling call AND write each prompt to describe the SAME character as the image (matching age, hair, clothing, setting). Mismatched prompts will override the start image's identity within 5 seconds. Works for human and non-human characters. See `references/kling-models.md` §Character Consistency. **Caveat**: when passing a start image to Kling, the `aspect_ratio` parameter is IGNORED — output uses the start image's native aspect ratio per the Kling model card.
 
 ## Quick Reference
 
@@ -82,7 +82,7 @@ Use the **5-Part Video Framework**: Camera → Subject → Action → Setting �
 - Include audio in every prompt: dialogue in quotes, SFX with "SFX:" prefix, ambient as description
 - One dominant action per clip (must complete within 4-8 seconds)
 - NEVER use banned keywords: "8K," "masterpiece," "ultra-realistic"
-- For character consistency: repeat exact identity phrasing across all shots
+- For character consistency: repeat exact identity phrasing across all shots AND pass the character's reference image as `--first-frame` on every Kling call. The prompt MUST describe the same character as the image — mismatched descriptions cause Kling to morph toward the prompted character within 5 seconds. See `references/kling-models.md` §Character Consistency
 
 ### Step 6: Set Duration + Aspect Ratio + Resolution
 
