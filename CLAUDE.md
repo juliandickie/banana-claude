@@ -74,7 +74,7 @@ This repo follows the official Claude Code plugin layout:
 | `skills/create-image/references/mcp-tools.md` | MCP tool parameter reference. Update when Google changes the API. |
 | `skills/create-image/references/replicate.md` | Replicate backend API reference (`google/nano-banana-2`). |
 | `skills/create-image/references/presets.md` | Brand Style Guide schema (17 fields, 8 optional for brand guides). |
-| `skills/create-image/references/social-platforms.md` | 47 social media platform specs (pixels, ratios, negative space). Loaded by `/create-image social`. |
+| `skills/create-image/references/social-platforms.md` | 46 social media platform specs (pixels, ratios, negative space). Loaded by `/create-image social`. |
 | `skills/create-image/references/brand-builder.md` | Brand guide creation flow (learn → refine → preview → save). Loaded by `/create-image brand`. |
 | `skills/create-image/scripts/social.py` | Social media batch generation (generate, list, info). Groups by ratio to avoid duplicate API calls. |
 | `skills/create-image/references/setup.md` | Setup, install, update, status, sharing guide. Loaded on demand by `/create-image setup/status/update`. |
